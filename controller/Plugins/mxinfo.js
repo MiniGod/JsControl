@@ -14,8 +14,8 @@ function beginMap(core, params) {
 }
 
 function getMxData(core, uid) {
-	var client = http.createClient(80, 'tm.mania-exchange.com');
-	var request = client.request("GET", '/api/tracks/get_track_info/uid/'+uid+'?format=json', {'user-agent': 'NodeJS XMLRPC'});
+	var client = http.createClient(80, 'api.mania-exchange.com');
+	var request = client.request("GET", '/tm/tracks/'+uid, {'user-agent': 'NodeJS XMLRPC', 'Content-Type': 'application/json'});
 	request.addListener('response', function (response) {
 	    response.setEncoding('binary') 
 	    var body = '';
@@ -26,7 +26,7 @@ function getMxData(core, uid) {
 	    response.addListener('end', function () {
 	        console.log('MX data received!');
 	        try {
-	        	var data = JSON.parse(body);
+	        	var data = JSON.parse(body)[0];
 	        	core.callMethod('ChatSendServerMessage', ['$z$o$s$08fMX Data: $o$l[http://tm.mania-exchange.com/s/tr/'+data['TrackID']+'](view on MX)$l - '+data['AwardCount']+' awards, '+data['CommentCount']+' comments.']);
 	        } catch (error) {
 	        	console.log('Failed to parse MX data. ===> '+body);
