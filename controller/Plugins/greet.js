@@ -12,7 +12,7 @@ function playerConnect(core, params) {
  	// param[1] = isSpectator
 
  	// Get detailed player info, contains player nickname. - Once received, the detailedInfoReceived function is fired.
- 	core.callMethod('GetDetailedPlayerInfo', [param[0]], detailedInfoReceived)
+ 	core.callMethod('GetDetailedPlayerInfo', [params[0]], detailedInfoReceived)
 }
 
 function detailedInfoReceived(core, params) {
