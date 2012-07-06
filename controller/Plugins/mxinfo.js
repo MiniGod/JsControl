@@ -47,7 +47,7 @@ function getMxData(core, uid) {
 	        	ml.addItem(frame);
 	        	core.callMethod('SendDisplayManialinkPage', [ml.getText(), 0, false])
 	        } catch (error) {
-	        	console.log('Failed to parse MX data. ===> '+body);
+	        	console.log('Failed to update MX data. ('+error+')');
 	        }
 	    });
 	});
