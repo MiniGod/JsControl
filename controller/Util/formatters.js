@@ -11,3 +11,9 @@ exports.FormatTime = function(time, msCount) {
 		sc = '0'+sc;
 	return mn+':'+sc+'.'+ms;
 }
+
+exports.StripFormatting = function(text) {
+	var p = /(\$[hHlL]\[.*\]|\$[hilswnmogztHILSWNMGZOT]{1}|\$[\d\a-fA-F]{3})/g;
+	p.compile(p);
+	return text.replace(p,"");
+}
