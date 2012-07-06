@@ -1,22 +1,30 @@
 var Manialink = function(id) {
 	this.front = '<manialink id="'+id+'">';
 	this.back = '</manialink>';
+	this.children = [];
 	this.getText = function() {
-		return this.front+this.back;
+		var out = this.front;
+		for (i in this.children)
+			out += this.children[i].getText();
+		return out+this.back;
 	}
 	this.addItem = function(item) {
-		this.front += item.getText();
+		this.children.push(item);
 	}
 }
 
 var Frame = function(pos3) {
 	this.front = '<frame posn="'+pos3+'">';
 	this.back = '</frame>';
+	this.children = [];
 	this.getText = function() {
-		return this.front+this.back;
+		var out = this.front;
+		for (i in this.children)
+			out += this.children[i].getText();
+		return out+this.back;
 	}
 	this.addItem = function(item) {
-		this.front += item.getText();
+		this.children.push(item);
 	}
 }
 
@@ -40,7 +48,7 @@ var Label = function(pos3, text) {
 	this.text = text;
 	this.scale = 1;
 	this.getText = function() {
-		return '<label posn="'+this.pos3+'" sizen="'+this.size2+'" halign="'+this.halign+'" valign="'+this.valign+'" text="'+this.text+'" scale="'+this.scale+'" />';
+		return '<label posn="'+this.pos3+'" sizen="'+this.size2+'" halign="'+this.halign+'" valign="'+this.valign+'" text="'+this.text+'" scale="'+this.scale +'" />';
 	}
 }
 
