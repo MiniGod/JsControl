@@ -177,8 +177,8 @@ function getResult(data) {
 	if (xml.length < size.readUInt32LE(0)) {
 		if (xml.length <= 200)
 			return;
-		else
-			console.log('[WARNING] Passing data through while check failed - Parsing might fail!');
+		//else
+		//	console.log('[WARNING] Passing data through while check failed - Parsing might fail!');
 	}
 	
 	var desil = new deserializer();
