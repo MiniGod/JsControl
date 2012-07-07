@@ -40,7 +40,15 @@ connection.on('data', function(data) {
 				console.log('==== Loading plugins completed, all set! ====');
 				// Enable callbacks, all plugins were loaded.
 				core.callMethod('EnableCallbacks', [true]);
+				// Enable timer for onEverySecond event
+				setInterval(function() {
+					callbackHandle(corePrivate._onEverySecondCallbacks, []);
+				}, 1000)
 			});
+		});
+		// Bind onEverySecond for a stack push, in case some request failed so the queue just goes on with a delay.
+		core.onEverySecond(function(core, params) {
+			corePrivate.callUpdate();
 		});
 	}
 
@@ -74,27 +82,9 @@ connection.on('connect', function() {
 // Core object, this will be shared with all plugins at every callback.
 var core = {
 	callMethod: function(name, params, callback) {
-		var xml = serializer.serializeMethodCall(name, params);
-		corePrivate._handleId++;
-
-		var messageBytes = new Buffer(xml);
-		var sizeBytes = new Buffer(4);
-		var handleBytes = new Buffer(4);
-		
-		sizeBytes.writeUInt32LE(xml.length, 0);
-		handleBytes.writeUInt32LE(corePrivate._handleId, 0);
-		
-		var sendBuffer = new Buffer(messageBytes.length + sizeBytes.length + handleBytes.length);
-		sizeBytes.copy(sendBuffer, 0, 0, sizeBytes.length); // Copy.
-		handleBytes.copy(sendBuffer, 4, 0, handleBytes.length); // Copy.
-		messageBytes.copy(sendBuffer, 8, 0, messageBytes.length); // Copy.
-
-		// Set callback
-		if (callback)
-			corePrivate._methodCallbacks[corePrivate._handleId] = callback;
-		
-		// Write message to socket. UTF-8 encoding.
-		connection.write(sendBuffer, 'utf8');
+		// Add to queue
+		corePrivate._methodQueue.push([name, params, callback]);
+		corePrivate.callUpdate();
 	},
 	onPlayerConnect: function(callback) { corePrivate._onPlayerConnectCallbacks.push(callback); },
 	onPlayerDisconnect: function(callback) { corePrivate._onPlayerDisconnectCallbacks.push(callback); },
@@ -119,7 +109,8 @@ var core = {
 	onPlayerInfoChanged: function(callback) { corePrivate._onPlayerInfoChangedCallbacks.push(callback); },
 	onManualFlowControlTransition: function(callback) { corePrivate._onManualFlowControlTransitionCallbacks.push(callback); },
 	onVoteUpdated: function(callback) { corePrivate._onVoteUpdatedCallbacks.push(callback); },
-	onRulesScriptCallback: function(callback) { corePrivate._onRulesScriptCallbackCallbacks.push(callback); }
+	onRulesScriptCallback: function(callback) { corePrivate._onRulesScriptCallbackCallbacks.push(callback); },
+	onEverySecond: function(callback) { corePrivate._onEverySecondCallbacks.push(callback); }
 };
 
 // Core object, but not shared with plugins
@@ -127,6 +118,42 @@ var corePrivate = {
 	// Method handlers
 	_handleId: 0x80000000,
 	_methodCallbacks: {},
+	_methodQueue: [],
+	_methodTime: 0,
+	callUpdate: function() {
+		if (this._methodQueue.length == 0) // Nothing to update
+			return;
+		var time = (new Date()).getTime();
+		if (this._methodTime == 0 || this._methodTime + 500 < time)
+		{
+			var req = this._methodQueue[0];
+			this._methodQueue.splice(0, 1);
+			this.callMethod(req[0], req[1], req[2]);
+		}
+	},
+	callMethod: function(name, params, callback) {
+		var xml = serializer.serializeMethodCall(name, params);
+		corePrivate._handleId++;
+
+		var messageBytes = new Buffer(xml);
+		var sizeBytes = new Buffer(4);
+		var handleBytes = new Buffer(4);
+		
+		sizeBytes.writeUInt32LE(xml.length, 0);
+		handleBytes.writeUInt32LE(corePrivate._handleId, 0);
+		
+		var sendBuffer = new Buffer(messageBytes.length + sizeBytes.length + handleBytes.length);
+		sizeBytes.copy(sendBuffer, 0, 0, sizeBytes.length); // Copy.
+		handleBytes.copy(sendBuffer, 4, 0, handleBytes.length); // Copy.
+		messageBytes.copy(sendBuffer, 8, 0, messageBytes.length); // Copy.
+
+		// Set callback
+		if (callback)
+			corePrivate._methodCallbacks[corePrivate._handleId] = callback;
+		
+		// Write message to socket. UTF-8 encoding.
+		connection.write(sendBuffer, 'utf8');
+	},
 	// Callback handlers
 	_onPlayerConnectCallbacks: [],
 	_onPlayerDisconnectCallbacks: [],
@@ -151,7 +178,8 @@ var corePrivate = {
 	_onPlayerInfoChangedCallbacks: [],
 	_onManualFlowControlTransitionCallbacks: [],
 	_onVoteUpdatedCallbacks: [],
-	_onRulesScriptCallbackCallbacks: []
+	_onRulesScriptCallbackCallbacks: [],
+	_onEverySecondCallbacks: []
 }
 
 /**
@@ -268,6 +296,10 @@ function getResult(data) {
 					console.log('Unhandled callback: ' + result['methodName']);
 			}
 		} else { // Method response
+			// Instantly call next item in queue
+			corePrivate._methodTime = 0;
+			corePrivate.callUpdate();
+			// Callback
 			if (corePrivate._methodCallbacks[recHandle] != undefined)
 				corePrivate._methodCallbacks[recHandle](core, result['params']);
 		}
