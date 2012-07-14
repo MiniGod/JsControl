@@ -4,9 +4,11 @@ var deserializer = require('./Lib/deserializer.js');
 var fs = require('fs');
 var stream = require('stream');
 
+var config = require('./config.js');
+
 var loadedPlugins = [];
 
-var connection = net.createConnection(5000, "127.0.0.1");
+var connection = net.createConnection(config.Port, config.Ip);
 
 connection.on('data', function(data) {
 	var slice = data.slice(4, data.length);
@@ -21,11 +23,14 @@ connection.on('data', function(data) {
 		console.log(' > Protocol: ' + slice.toString());
 		// Load all plugins now...
 		console.log('==== Authing ====');
-		console.log(' > Authing as: SuperAdmin');
+		var pass = '';
+		for (var i = config.Password.length - 1; i >= 0; i--)
+			pass += '*';
+		console.log(' > Authing as: '+config.User+'/'+pass);
 		// Send a new api version already
 		core.callMethod('SetApiVersion', ['2011-10-06'], function() {
 			// Auth to the server, the protocol was received
-			core.callMethod('Authenticate', ['SuperAdmin', 'SuperAdmin'], function() {
+			core.callMethod('Authenticate', [config.User, config.Password], function() {
 				// Auth done, start loading all plguins and call their export.Init function.
 				console.log('==== Reading plugins ====');
 				var plugins = fs.readdirSync('Plugins'); // Read all plugins from ./Plugins/
