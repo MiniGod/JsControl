@@ -192,27 +192,58 @@ var corePrivate = {
  *
  * @param {Buffer} data 	- The data from the response.
  */ 
+
+var xml = '';
+var isReading = false;
+var recHandle = 0;
+var size = 0;
+var buffer = new Buffer(0);
+
 function getResult(data) {
+	var message;
+	buffer = new Buffer(0);
+	if (isReading == false) {
+		// New call
+		isReading = true;
+		size = 0;
+		recHandle = 0;
 
-	// Received handle ID.
-	var recHandle = 0;
+		size = data.slice(0, 4).readUInt32LE(0); // Size.
 
-	var size = data.slice(0, 4); // Size.
-	var handle = data.slice(4, 8); // Handle.
-	var message = data.slice(8, data.length); // Message.
-	// Read handle.
-	recHandle = handle.readUInt32LE(0);
-
-	var xml = message.toString('utf8', 0, size.readUInt32LE(0));
-	
-	// TODO:
-	// Needs a rework, this handling is somewhat wonky even though it works so far.
-	if (xml.length < size.readUInt32LE(0)) {
-		if (xml.length <= 200)
+		if (size == 2) {
+			// Some packet has 1st 4 bytes '2' as result, somehow, and is just weird.
+			// Just logging if a pattern once appears.
+			console.log('The secret packet of weirdness popped up.')
+			isReading = false;
 			return;
-		//else
-		//	console.log('[WARNING] Passing data through while check failed - Parsing might fail!');
+		}
+
+		recHandle = data.slice(4, 8).readUInt32LE(0); // Handle.
+
+		if (data.length-8 > size) { // If so, another call comes right after
+			buffer = data.slice(size+8, data.length);
+			xml = data.slice(8,size+8).toString('utf8');
+		} else 
+			xml = data.slice(8,data.length).toString('utf8');
+	} else {
+		if (data.length > size-xml.length) { // If so, another call comes right after
+			buffer = data.slice(size-xml.length, data.length);
+			xml += data.slice(0, size-xml.length).toString('utf8'); 
+		} else 
+			xml += data.slice(0, data.length).toString('utf8');
 	}
+
+	if (size == 0 || size > 4096*1024 || recHandle == 0)
+	{
+		console.log('Transport error: Handle:'+recHandle+' Size:'+size)
+		// start over in case of weirdness
+		xml = '';
+		isReading = false;
+		return;
+	}
+
+	if (xml.length < size)
+		return;
 	
 	var desil = new deserializer();
 	desil.deserialize(xml, function(error, result) {
@@ -222,7 +253,6 @@ function getResult(data) {
 		}
 		if((recHandle & 0x80000000) == 0) // Callback. 
 		{
-
 			// Call functions in plugins
 			switch (result['methodName']) {
 				case 'ManiaPlanet.PlayerConnect':
@@ -309,6 +339,11 @@ function getResult(data) {
 				corePrivate._methodCallbacks[recHandle](core, result['params']);
 		}
 	});
+	xml = '';
+	isReading = false;
+	// If some data is in the buffer, do it again..
+	if (buffer.length > 0)
+		getResult(buffer);
 };
 
 function callbackHandle(funcs, params) {
@@ -318,4 +353,5 @@ function callbackHandle(funcs, params) {
 
 process.on('uncaughtException', function(err) {
     console.log("[Error]", err);
+    console.log("       ", err.stack);
 });
