@@ -1,6 +1,6 @@
 var net = require('net');
-var serializer = require('./serializer.js');
-var deserializer = require('./deserializer.js');
+var serializer = require('./Lib/serializer.js');
+var deserializer = require('./Lib/deserializer.js');
 var fs = require('fs');
 var stream = require('stream');
 
@@ -310,3 +310,7 @@ function callbackHandle(funcs, params) {
 	for (i in funcs)
 		funcs[i](core, params);
 }
+
+process.on('uncaughtException', function(err) {
+    console.log("[Error]", err);
+});
