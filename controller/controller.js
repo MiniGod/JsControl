@@ -4,7 +4,8 @@ var deserializer = require('./Lib/deserializer.js');
 var fs = require('fs');
 var stream = require('stream');
 
-var config = require('./config.js');
+delete require.cache['./config.js'];
+var config = require('./config.js', true);
 
 var loadedPlugins = [];
 
@@ -33,14 +34,13 @@ connection.on('data', function(data) {
 			core.callMethod('Authenticate', [config.User, config.Password], function() {
 				// Auth done, start loading all plguins and call their export.Init function.
 				console.log('==== Reading plugins ====');
-				var plugins = fs.readdirSync('Plugins'); // Read all plugins from ./Plugins/
-				for (pid in plugins) {
-					console.log(' > Loading '+plugins[pid]+'...');
-					var plugin = require('./Plugins/'+plugins[pid]);
+				for (pid in config.plugins) {
+					console.log(' > Loading '+config.plugins[pid]+'...');
+					var plugin = require('./Plugins/'+config.plugins[pid]);
 					if (plugin.Init && plugin.Init(core) == true) 
 						loadedPlugins.push(plugin);
 					else
-						console.log(' ! Failed to load plugin '+plugins[pid]+'.');
+						console.log(' ! Failed to load plugin '+config.plugins[pid]+'.');
 				}
 				console.log('==== Loading plugins completed, all set! ====');
 				// Enable callbacks, all plugins were loaded.

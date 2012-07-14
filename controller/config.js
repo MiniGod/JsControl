@@ -14,6 +14,19 @@ config.User		= 'SuperAdmin'
 config.Password	= 'SuperAdmin'
 
 
+/////////////////////////////////////////////////////
+////// Plugins to load                         //////
+/////////////////////////////////////////////////////
+
+config.plugins = [];
+// To add a plugin, add the plugin into the Plugins folder, then reference it here.
+// Referencing should be done using the file's filename, including extension (.js).
+//   config.plugins.push('FILENAME.js');
+
+config.plugins.push('greet.js');
+config.plugins.push('finish.js');
+config.plugins.push('cpcounter.js');
+config.plugins.push('mxinfo.js');
 
 
 module.exports = config;
