@@ -46,7 +46,7 @@ function getMxData(core, uid) {
 	        	frame.addItem(label3);
 	        	ml.addItem(frame);
 	        	core.callMethod('SendDisplayManialinkPage', [ml.getText(), 0, false]);
-	        	core.callMethod('ChatSendServerMessage', ['$z$o$s$08fMX Data: $o$8bf$i$l[http://tm.mania-exchange.com/s/tr/'+data['TrackID']+'](view on MX)$i$l - '+data['AwardCount']+' awards, '+data['CommentCount']+' comments.']);
+	        	core.callMethod('ChatSendServerMessage', ['$z$o$fff» $i$s$08fMX Data: $o$8bf$i$l[http://tm.mania-exchange.com/s/tr/'+data['TrackID']+'](view on MX)$i$l - '+data['AwardCount']+' awards, '+data['CommentCount']+' comments.']);
 	        } catch (error) {
 	        	console.log('Failed to update MX data. ('+error+')');
 	        }
