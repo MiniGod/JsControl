@@ -70,8 +70,11 @@ connection.on('error', function(error) {
 });
 
 // Close.
-connection.on('close', function() {
-	console.log(' ! Connection to the remote server has been closed.');
+connection.on('close', function(isError) {
+	if (isError)
+		console.log(' ! Connection to the remote server has been closed because of an error.');
+	else
+		console.log(' ! Connection to the remote server has been closed.');
 });
 
 // Timeout.
@@ -138,13 +141,14 @@ var corePrivate = {
 	},
 	callMethod: function(name, params, callback) {
 		var xml = serializer.serializeMethodCall(name, params);
+		//console.log(xml);
 		corePrivate._handleId++;
 
 		var messageBytes = new Buffer(xml);
 		var sizeBytes = new Buffer(4);
 		var handleBytes = new Buffer(4);
 		
-		sizeBytes.writeUInt32LE(xml.length, 0);
+		sizeBytes.writeUInt32LE(messageBytes.length, 0);
 		handleBytes.writeUInt32LE(corePrivate._handleId, 0);
 		
 		var sendBuffer = new Buffer(messageBytes.length + sizeBytes.length + handleBytes.length);
@@ -197,6 +201,7 @@ var xml = '';
 var isReading = false;
 var recHandle = 0;
 var size = 0;
+var bytesLeft = 0;
 var buffer = new Buffer(0);
 
 function getResult(data) {
@@ -206,49 +211,52 @@ function getResult(data) {
 		// New call
 		isReading = true;
 		size = 0;
+		bytesLeft = 0;
 		recHandle = 0;
 
 		size = data.slice(0, 4).readUInt32LE(0); // Size.
-
-		if (size == 2) {
-			// Some packet has 1st 4 bytes '2' as result, somehow, and is just weird.
-			// Just logging if a pattern once appears.
-			console.log('The secret packet of weirdness popped up.')
-			isReading = false;
-			return;
-		}
+		bytesLeft = size;
 
 		recHandle = data.slice(4, 8).readUInt32LE(0); // Handle.
 
-		if (data.length-8 > size) { // If so, another call comes right after
-			buffer = data.slice(size+8, data.length);
-			xml = data.slice(8,size+8).toString('utf8');
-		} else 
+		if (data.length-8 > bytesLeft) { // If so, another call comes right after
+			buffer = data.slice(bytesLeft+8, data.length);
+			xml = data.slice(8,bytesLeft+8).toString('utf8');
+		} else {
 			xml = data.slice(8,data.length).toString('utf8');
+			bytesLeft -= data.length-8;
+		}
 	} else {
-		if (data.length > size-xml.length) { // If so, another call comes right after
-			buffer = data.slice(size-xml.length, data.length);
-			xml += data.slice(0, size-xml.length).toString('utf8'); 
-		} else 
+		if (data.length > bytesLeft) { // If so, another call comes right after
+			buffer = data.slice(bytesLeft, data.length);
+			xml += data.slice(0, bytesLeft).toString('utf8'); 
+		} else {
 			xml += data.slice(0, data.length).toString('utf8');
+			bytesLeft -= data.length;
+		}
 	}
 
 	if (size == 0 || size > 4096*1024 || recHandle == 0)
 	{
-		console.log('Transport error: Handle:'+recHandle+' Size:'+size)
+		console.log('Transport error: Handle:'+recHandle)
+		console.log('  Buffer size: '+buffer.length)
+		console.log('  Data size  : '+size)
+		console.log('  Bytes left : '+bytesLeft)
+		console.log('  XML size   : '+xml.length)
 		// start over in case of weirdness
 		xml = '';
 		isReading = false;
 		return;
 	}
 
-	if (xml.length < size)
+	if (data.length-8 < size) // Only a part of the message is received, waiting for the rest...
 		return;
 	
 	var desil = new deserializer();
 	desil.deserialize(xml, function(error, result) {
 		if (error != undefined) {
 			console.log('[ERROR] (XMLRPC Parse) '+error)
+			console.log('[ERROR] Received data: '+xml)
 			return;
 		}
 		if((recHandle & 0x80000000) == 0) // Callback. 

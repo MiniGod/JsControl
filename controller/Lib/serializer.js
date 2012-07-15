@@ -15,7 +15,8 @@ exports.serializeMethodCall = function(method, params) {
   var params = params || []
 
   var xml = xmlBuilder.create()
-    . begin('methodCall', { version: '1.0', standalone: 'yes', encoding: 'UTF-8' })
+ //   . begin('methodCall', { version: '1.0', standalone: 'yes', encoding: 'UTF-8' })
+    . begin('methodCall', { version: '1.0' })
     . ele('methodName')
       .txt(method)
     . up()
