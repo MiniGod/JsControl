@@ -26,6 +26,7 @@ config.plugins = [];
 config.plugins.push('greet.js');
 config.plugins.push('finish.js');
 config.plugins.push('cpcounter.js');
+config.plugins.push('cplive.js');
 config.plugins.push('mxinfo.js');
 
 
