@@ -32,6 +32,8 @@ connection.on('data', function(data) {
 		core.callMethod('SetApiVersion', ['2011-10-06'], function() {
 			// Auth to the server, the protocol was received
 			core.callMethod('Authenticate', [config.User, config.Password], function() {
+				// We can clear all manialinks now to start fresh
+				core.callMethod('SendHideManialinkPage', []);
 				// Auth done, start loading all plguins and call their export.Init function.
 				console.log('==== Reading plugins ====');
 				for (pid in config.plugins) {
