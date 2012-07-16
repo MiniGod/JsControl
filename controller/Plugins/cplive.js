@@ -53,6 +53,7 @@ exports.Init = function(core) {
 		if (TicksSinceUpdate > 3 && NeedUpdate) {
 			UpdateUI(core);
 			NeedUpdate = false;
+			TicksSinceUpdate = 0;
 		}
 	});
 	return true;
