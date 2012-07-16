@@ -52,4 +52,5 @@ var Label = function(pos3, text) {
 	}
 }
 
-module.exports = {Manialink: Manialink, Frame: Frame, Quad: Quad, Label: Label}
+module.exports = 	{Manialink: Manialink, Frame: Frame, Quad: Quad, Label: Label, 
+					getEmpty: function(id){return '<manialink id="'+id+'"></manialink>'}}

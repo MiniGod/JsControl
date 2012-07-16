@@ -6,6 +6,7 @@ var ui = require('../Util/ui.js');
 
 exports.Init = function(core) {
 	core.onBeginMap(beginMap);
+	core.onEndMatch(endMatch);
 	core.callMethod('GetCurrentMapInfo', [], function(core, params) {
 		getMxData(core, params[0]['UId']);
 	});
@@ -14,6 +15,10 @@ exports.Init = function(core) {
 
 function beginMap(core, params) {
 	getMxData(core, params[0]['UId']);
+}
+
+function endMatch(core, params) {
+	core.callMethod('SendDisplayManialinkPage', [ui.getEmpty('1000'), 0, false]);
 }
 
 function getMxData(core, uid) {
@@ -27,11 +32,10 @@ function getMxData(core, uid) {
 	        body += chunk;
 	    });
 	    response.addListener('end', function () {
-	        console.log('MX data received!');
 	        try {
 	        	var data = JSON.parse(body)[0];
 	        	var ml = new ui.Manialink('1000');
-	        	var frame = new ui.Frame('64 42 0');
+	        	var frame = new ui.Frame('63.5 42 0');
 	        	var label1 = new ui.Label('0 0 0', '$sAwards: $o'+data['AwardCount']);
 	        	label1.halign = 'right';
 	        	label1.scale = 0.75;

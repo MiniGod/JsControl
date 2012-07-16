@@ -32,7 +32,12 @@ exports.Init = function(core) {
 	core.onPlayerConnect(function (core, params) {
 		UpdateUI(core, 0, params[0]);
 	});
+	core.onEndMatch(endMatch);
 	return true;
+}
+
+function endMatch(core, params) {
+	core.callMethod('SendDisplayManialinkPage', [ui.getEmpty('1001'), 0, false]);
 }
 
 function UpdateUI(core, count, login) {
