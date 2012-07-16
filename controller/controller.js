@@ -222,18 +222,16 @@ function getResult(data) {
 		if (data.length-8 > bytesLeft) { // If so, another call comes right after
 			buffer = data.slice(bytesLeft+8, data.length);
 			xml = data.slice(8,bytesLeft+8).toString('utf8');
-		} else {
+		} else
 			xml = data.slice(8,data.length).toString('utf8');
-			bytesLeft -= data.length-8;
-		}
+		bytesLeft -= data.length-8;
 	} else {
 		if (data.length > bytesLeft) { // If so, another call comes right after
 			buffer = data.slice(bytesLeft, data.length);
 			xml += data.slice(0, bytesLeft).toString('utf8'); 
-		} else {
+		} else
 			xml += data.slice(0, data.length).toString('utf8');
-			bytesLeft -= data.length;
-		}
+		bytesLeft -= data.length;
 	}
 
 	if (size == 0 || size > 4096*1024 || recHandle == 0)
@@ -248,10 +246,10 @@ function getResult(data) {
 		isReading = false;
 		return;
 	}
-
-	if (data.length-8 < size) // Only a part of the message is received, waiting for the rest...
-		return;
 	
+	if (bytesLeft > 0) // Only a part of the message is received, waiting for the rest...
+		return;
+
 	var desil = new deserializer();
 	desil.deserialize(xml, function(error, result) {
 		if (error != undefined) {
