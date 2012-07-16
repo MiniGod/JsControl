@@ -8,6 +8,7 @@ delete require.cache['./config.js'];
 var config = require('./config.js', true);
 
 var loadedPlugins = [];
+var loadedPluginNames = [];
 
 var connection = net.createConnection(config.Port, config.Ip);
 
@@ -39,9 +40,10 @@ connection.on('data', function(data) {
 				for (pid in config.plugins) {
 					console.log(' > Loading '+config.plugins[pid]+'...');
 					var plugin = require('./Plugins/'+config.plugins[pid]);
-					if (plugin.Init && plugin.Init(core) == true) 
+					if (plugin.Init && plugin.Init(core) === true) {
 						loadedPlugins.push(plugin);
-					else
+						loadedPluginNames.push(config.plugins[pid]);
+					} else
 						console.log(' ! Failed to load plugin '+config.plugins[pid]+'.');
 				}
 				console.log('==== Loading plugins completed, all set! ====');
@@ -95,6 +97,12 @@ var core = {
 		// Add to queue
 		corePrivate._methodQueue.push([name, params, callback]);
 		corePrivate.callUpdate();
+	},
+	isPluginLoaded: function(fileName) {
+		for (key in loadedPluginNames)
+			if (loadedPluginNames[key] == fileName)
+				return true;
+		return false;
 	},
 	onPlayerConnect: function(callback) { corePrivate._onPlayerConnectCallbacks.push(callback); },
 	onPlayerDisconnect: function(callback) { corePrivate._onPlayerDisconnectCallbacks.push(callback); },
