@@ -11,6 +11,10 @@ exports.Init = function(core) {
 	}
 	// Bind the onPlayerConnect event to the playerConnect function in this script
 	core.onPlayerConnect(playerConnect);
+	core.onRulesScriptCallback(function(core, params) {
+		console.log(params[0], params[1]);
+		
+	});
 	return true;
 }
 

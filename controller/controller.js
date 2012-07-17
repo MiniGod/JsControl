@@ -4,11 +4,21 @@ var deserializer = require('./Lib/deserializer.js');
 var fs = require('fs');
 var stream = require('stream');
 
-delete require.cache['./config.js'];
-var config = require('./config.js', true);
+if (!fs.existsSync('Plugins/')) {
+	console.log('Error: ./Plugins/ not found.');
+	return;
+}
+
+if (!fs.existsSync('config.js')) {
+	console.log('Error: ./config.js not found.');
+	return;
+}
 
 var loadedPlugins = [];
 var loadedPluginNames = [];
+
+delete require.cache['./config.js'];
+var config = require('./config.js', true);
 
 var connection = net.createConnection(config.Port, config.Ip);
 
@@ -341,6 +351,7 @@ function getResult(data) {
 				    callbackHandle(corePrivate._onVoteUpdatedCallbacks, result['params']);
 				    break;
 				case 'ManiaPlanet.RulesScriptCallback':
+				case 'ManiaPlanet.ModeScriptCallback':
 				    callbackHandle(corePrivate._onRulesScriptCallbackCallbacks, result['params']);
 				    break;
 				default:
