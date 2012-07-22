@@ -7,7 +7,7 @@ config.operators = [];
 /////////////////////////////////////////////////////
 // To add an admin, un-comment one of the three lines below and place the admin's login
 
-//config.admins.push('admin 1');
+config.admins.push('tgyoshi');
 //config.admins.push('admin 2');
 //config.admins.push('admin 3');
 

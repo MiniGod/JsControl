@@ -3,3 +3,4 @@ Plugins/
 
 # Ignore config file
 config.js
+config_admin.js
