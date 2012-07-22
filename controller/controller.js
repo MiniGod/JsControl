@@ -40,9 +40,9 @@ connection.on('data', function(data) {
 			pass += '*';
 		console.log(' > Authing as: '+config.User+'/'+pass);
 		// Send a new api version already
-		core.callMethod('SetApiVersion', ['2011-10-06'], function() {
 			// Auth to the server, the protocol was received
-			core.callMethod('Authenticate', [config.User, config.Password], function() {
+		core.callMethod('Authenticate', [config.User, config.Password], function() {
+			core.callMethod('SetApiVersion', ['2011-10-06'], function() {
 				// We can clear all manialinks now to start fresh
 				core.callMethod('SendHideManialinkPage', []);
 				// Auth done, start loading all plguins and call their export.Init function.
