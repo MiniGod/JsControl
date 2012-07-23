@@ -35,8 +35,9 @@ var Quad = function(pos3, size2, style, substyle) {
 	this.substyle = substyle;
 	this.url = '';
 	this.action = '';
+	this.actionkey = '';
 	this.getText = function() {
-		return '<quad posn="'+this.pos3+'" sizen="'+this.size2+'" url="'+this.url+'" style="'+this.style+'" substyle="'+this.substyle+'" action="'+this.action+'" />';
+		return '<quad posn="'+this.pos3+'" sizen="'+this.size2+'" url="'+this.url+'" style="'+this.style+'" substyle="'+this.substyle+'" action="'+this.action+'" actionkey="'+this.actionkey+'" />';
 	}
 }
 
@@ -47,8 +48,10 @@ var Label = function(pos3, text) {
 	this.valign = '';
 	this.text = text;
 	this.scale = 1;
+	this.action = '';
+	this.actionkey = '';
 	this.getText = function() {
-		return '<label posn="'+this.pos3+'" sizen="'+this.size2+'" halign="'+this.halign+'" valign="'+this.valign+'" text="'+this.text+'" scale="'+this.scale +'" />';
+		return '<label posn="'+this.pos3+'" sizen="'+this.size2+'" halign="'+this.halign+'" valign="'+this.valign+'" text="'+this.text+'" scale="'+this.scale +'" action="'+this.action+'" actionkey="'+this.actionkey+'" />';
 	}
 }
 
