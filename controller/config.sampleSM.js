@@ -23,7 +23,11 @@ config.plugins = [];
 // Referencing should be done using the file's filename, including extension (.js).
 //   config.plugins.push('FILENAME.js');
 
+config.plugins.push('database.js');
 config.plugins.push('admin.js');
+config.plugins.push('commands.js');
+config.plugins.push('maprotation.js');
+config.plugins.push('admin_commands.js');
 config.plugins.push('greet.js');
 config.plugins.push('mxinfo.js');
 
