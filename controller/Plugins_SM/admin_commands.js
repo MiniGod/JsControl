@@ -99,7 +99,7 @@ function restartMap(core, login, param) {
 }
 
 function mapExists(core, filename, callback) {
-	core.callMethod('GetMapList', [1000, 0], function(core, params) {
+	core.callMethod('GetMapList', [-1, 0], function(core, params) {
 		for (i in params[0]) {
 			if (params[0][i]['FileName'] == filename) {
 				callback(true);
