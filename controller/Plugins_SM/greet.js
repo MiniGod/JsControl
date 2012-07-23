@@ -13,7 +13,6 @@ exports.Init = function(core) {
 	core.onPlayerConnect(playerConnect);
 	core.onRulesScriptCallback(function(core, params) {
 		console.log(params[0], params[1]);
-		
 	});
 	return true;
 }
