@@ -24,6 +24,7 @@ config.plugins = [];
 //   config.plugins.push('FILENAME.js');
 
 config.plugins.push('database.js');
+config.plugins.push('panel.js');
 config.plugins.push('admin.js');
 config.plugins.push('commands.js');
 config.plugins.push('maprotation.js');
