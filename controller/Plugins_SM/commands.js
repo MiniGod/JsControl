@@ -1,5 +1,10 @@
 var admin = require('./admin.js');
+var panel = require('./panel.js');
 var commands = {};
+var commandshelp = {};
+commandshelp[0] = {}; // normal
+commandshelp[1] = {}; // operator
+commandshelp[2] = {}; // admin
 
 exports.Init = function(core) {
 	// Check if admin plugin is loaded.
@@ -30,13 +35,36 @@ exports.Init = function(core) {
 		if (sendNoPermission)
 			core.callMethod('ChatSendServerMessageToLogin', ['$z$o$fff» $o$i$s$f44No permission to run this command.', params[1]]);
 	});
+	
+	exports.onCommand('help', showCommands, 0, "List all commands with help");
+	
 	return true;
 }
 
-exports.onCommand = function(command, callback, opLevel) {
+exports.onCommand = function(command, callback, opLevel, helptext) {
 	if (commands[command] == undefined)
 		commands[command] = [];
 	if (!opLevel) opLevel = 0;
 	commands[command].push([callback, opLevel]);
+	if (!helptext) helptext = "";
+	commandshelp[opLevel][command] = helptext;
 	return false;
+}
+
+function showCommands(core, login, param) {
+	var level = 0;
+	if (admin.isOperator(login))
+		level = 1;
+	if (admin.isAdmin(login))
+		level = 2;
+	list = [];
+	for (cmd in commandshelp[0])
+		list.push(['/'+cmd, commandshelp[0][cmd]]);
+	if (level >= 1)
+		for (cmd in commandshelp[1])
+			list.push(['/'+cmd+' $i(OP)', commandshelp[1][cmd]]);
+	if (level >= 2)
+		for (cmd in commandshelp[2])
+			list.push(['/'+cmd+' $i(AD)', commandshelp[2][cmd]]);
+	panel.ShowList(core, login, {subject: 'Commands list and help', columns_widths: [0.4, 0.6], columns_names: ['Command', 'Info']}, list, 20);
 }

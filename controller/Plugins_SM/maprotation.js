@@ -19,7 +19,7 @@ exports.Init = function(core) {
 		mapChanged(core, params[0]);
 	});
 	
-	cmd.onCommand('list', listMaps, 0);
+	cmd.onCommand('list', listMaps, 0, "List all maps on the server");
 
 	return true;
 }

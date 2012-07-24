@@ -19,11 +19,11 @@ exports.Init = function(core) {
 			fs.mkdirSync(mapdir+'MX/');
 	});
 	// Bind events via cmd
-	cmd.onCommand('add', addMap, 2);
-	cmd.onCommand('remove', removeMap, 2);
-	cmd.onCommand('removethis', removeThisMap, 2);
-	cmd.onCommand('skip', skipMap, 1);
-	cmd.onCommand('restart', restartMap, 1);
+	cmd.onCommand('add', addMap, 2, "Add a map from MX; param: MX id");
+	cmd.onCommand('remove', removeMap, 2, "Remove map; param: file name");
+	cmd.onCommand('removethis', removeThisMap, 2, "Remove current map");
+	cmd.onCommand('skip', skipMap, 1, "Skip to the next map");
+	cmd.onCommand('restart', restartMap, 1, "Restart current map/match");
 	
 	return true;
 }
