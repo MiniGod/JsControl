@@ -43,6 +43,9 @@ exports.Init = function(core) {
 			}
 		}
 	});
+	core.onPlayerDisconnect(function(core, params) {
+		delete pdata[params[0]]; // Clear from cache
+	});
 	return true;
 }
 
@@ -63,17 +66,20 @@ exports.Show = function(core, login, settings, lines) {
 	if (settings == undefined) settings = {};
 	var height = 1;
 	var ml = new ui.Manialink('1');
-	var panel = new ui.Frame('-40 20 0');
+	var panel = new ui.Frame('80 90 0');
 	//var quad = new ui.Quad('0 0 0', '80 40', 'BgsPlayerCard', 'BgActivePlayerName');
-	var quad = new ui.Quad('0 0 0', '80 40', 'Bgs1', 'BgWindow3');
-	var quad2 = new ui.Quad('0 0 0', '80 40', 'Bgs1', 'BgTitleShadow');
+	var quad = new ui.Quad('0 0 0', '80 180', '', '');
+	quad.bgcolor = "0008";
+	//var quad2 = new ui.Quad('0 0 0', '80 40', 'Bgs1', 'BgTitleShadow');
 	
 	if (settings.subject != undefined) {
 		var subject = new ui.Label('40 -1.5 2', '$z$s$fff$o'+settings.subject);
 		subject.halign = 'center';
 		panel.addItem(subject);
-		panel.addItem(new ui.Quad('0 0 1', '80 5', 'Bgs1', 'BgTitle3'));
-		height -= 6;
+		var line = new ui.Quad('0 -0.5 1', '80 6', '', '');
+		line.bgcolor = "8888";
+		panel.addItem(line);
+		height -= 10;
 	}
 	
 	var width = 78;
@@ -84,10 +90,6 @@ exports.Show = function(core, login, settings, lines) {
 			settings.columns_widths = [settings.columns_widths];
 		for (i in settings.columns_widths) {
 			spacings.push(settings.columns_widths[i]*width+1);
-			/*if (settings.columns_widths[i-1] == undefined)
-				widths.push(settings.columns_widths[i]*width);
-			else
-				widths.push(settings.columns_widths[i]*width);*/
 			widths.push(settings.columns_widths[i]*width);
 		}
 	}
@@ -97,13 +99,14 @@ exports.Show = function(core, login, settings, lines) {
 			settings.columns_names = [settings.columns_names];
 		var w_depth = 0;
 		for (i in settings.columns_names) {
-			var column = new ui.Label(spacings[w_depth]+' '+height+' 2', '$aaa$s$o'+settings.columns_names[i]);
+			var column = new ui.Label(spacings[w_depth]+' '+height+' 2', '$ccc$s'+settings.columns_names[i], 'TextCardInfoSmall');
 			column.halign = 'left';
+			column.scale = 0.8;
 			column.size2 = widths[w_depth]+' 0';
 			panel.addItem(column);
 			w_depth += 1;
 		}
-		height -= 3;
+		height -= 5;
 	}
 	
 	for (i in lines) {
@@ -114,47 +117,54 @@ exports.Show = function(core, login, settings, lines) {
 			var column = new ui.Label(spacings[w_depth]+' '+height+' 2', lines[i][j]);
 			column.halign = 'left';
 			column.size2 = widths[w_depth]+' 0';
+			column.scale = 0.8;
 			panel.addItem(column);
 			w_depth += 1;
 		}
-		panel.addItem(new ui.Quad('0.5 '+(height+0.1)+' 1', '79 2.7', 'Bgs1', 'BgList'));
-		height -= 3;
+		//panel.addItem(new ui.Quad('0.5 '+(height+0.1)+' 1', '79 4', 'Bgs1', 'BgList'));
+		var line = new ui.Quad('0 '+(height+0.3)+' 1', '80 4.5', '', '');
+		line.bgcolor = "8883";
+		panel.addItem(line);
+		height -= 5;
 	}
 	
-	var prev = new ui.Quad('0 -34 2', '6 6', 'Icons64x64_1', 'ShowLeft2');
+	var prev = new ui.Quad('0 '+height+' 2', '6 6', 'Icons64x64_1', 'ShowLeft2');
 	prev.action = '998';
 	prev.actionkey = '2';
 	panel.addItem(prev);
-	var prevl = new ui.Label('4 -35.7 2', '$z$fff$o$sPrevious (F6)');
+	var prevl = new ui.Label('4 '+(height-1.5)+' 2', '$z$fff$o$sPrevious (F6)');
+	prevl.scale = 0.8;
 	panel.addItem(prevl);
 	
-	var next = new ui.Quad('74 -34 2', '6 6', 'Icons64x64_1', 'ShowRight2');
+	var next = new ui.Quad('74 '+height+' 2', '6 6', 'Icons64x64_1', 'ShowRight2');
 	next.action = '999';
 	next.actionkey = '3';
 	panel.addItem(next);
-	var nextl = new ui.Label('76 -35.7 2', '$z$fff$o$sNext (F7)');
+	var nextl = new ui.Label('76 '+(height-1.5)+' 2', '$z$fff$o$sNext (F7)');
+	nextl.scale = 0.8;
 	nextl.halign = 'right';
 	panel.addItem(nextl);
 	
-	var close = new ui.Quad('74 1 2', '7 7', 'Icons64x64_1', 'QuitRace');
+	var close = new ui.Quad('72 1.5 2', '10 10', 'Icons64x64_1', 'QuitRace');
 	close.action = '100';
 	close.actionkey = '4';
 	panel.addItem(close);
-	var closel = new ui.Label('76 -1.2 2', '$z$fff$o(F8)');
-	closel.halign = 'right';
+	var closel = new ui.Label('77 -5.5 2', '$z$fff$s(F8)');
+	closel.halign = 'center';
+	closel.scale = 0.6;
 	closel.action = '100';
 	closel.actionkey = '4';
 	panel.addItem(closel);
 	
 	if (settings.totalpages == undefined) settings.totalpages = 1;
 	if (settings.currentpage == undefined) settings.currentpage = 1;
-	var page = new ui.Label('40 -35.7 2', '$z$fff$o$s'+settings.currentpage+'/'+settings.totalpages);
+	var page = new ui.Label('40 '+(height-1.7)+' 2', '$z$fff$o$s'+settings.currentpage+'/'+settings.totalpages);
 	page.halign = 'center';
 	panel.addItem(page);
 
 
 	panel.addItem(quad);
-	panel.addItem(quad2);
+	//panel.addItem(quad2);
 	ml.addItem(panel);
 	core.callMethod('SendDisplayManialinkPageToLogin', [login, ml.getText(), 0, false]);
 	//core.callMethod('SendDisplayManialinkPageToLogin', [login, '<?xml version="1.0" encoding="UTF-8" ?><manialink id="2" version="1"><frame posn="-160 60 -60"><quad posn="0 -14 0" sizen="90 106" style="Bgs1InRace" substyle="BgWindow2"/><frame posn="0 0 0.1"><quad posn="-1 0 0" sizen="92 14" style="Bgs1InRace" substyle="BgTitle3_1"/><label posn="45 -7 0.1" sizen="86 7" halign="center" valign="center2" textsize="2.5" textcolor="fff" text="$o3 tracks on $zreabys testing server"/></frame><quad posn="1.5 -7 0.3" sizen="8 8" valign="center" style="Icons64x64_1" substyle="Close" action="61"/><label posn="9 -2.5 0.4" sizen="20 7" style="TextCardRaceRank" action="62" text="$000_"/><frame posn="0 -10 0.6"><quad posn="14.5 -9.5 0" sizen="64.5 5" style="BgsPlayerCard" substyle="BgCardSystem" action="64"/><label posn="6.5 -10.5 0.1" sizen="6.5 3" halign="right" textsize="2" textcolor="000" text="1."/><label posn="15.5 -10.5 0.2" sizen="633" textsize="2" textcolor="000" text="$s$fffRoyal - $f20He$f31ar$f42tB$f53re$f64ak$f75er"/><quad posn="14.5 -15.5 0.3" sizen="64.5 5" style="BgsPlayerCard" substyle="BgCardSystem" action="65"/><label posn="6.5 -16.5 0.4" sizen="6.5 3" halign="right" textsize="2" textcolor="000" text="2."/><label posn="15.5 -16.5 0.5" sizen="63 3" textsize="2" textcolor="000" text="$s$fffRoyal - $f20Me$f31et$f42in$f53gP$f64oi$f75nt"/><quad posn="14.5 -21 0.6" sizen="64.5 6" style="Bgs1InRace" substyle="NavButtonBlink"/><label posn="6.5 -22.5 0.7" sizen="6.5 3" halign="right" textsize="2" textcolor="000" text="3."/><label posn="15.5 -22.5 0.8" sizen="63 3" textsize="2" textcolor="000" text="$s$fffRoyal - $f20Ro$f31ad$f42To$f53No$f64wh$f75er$f86e"/></frame><frame posn="45 -114 1.5"><quad posn="8 0 0" sizen="8 8" valign="center" style="Icons64x64_1" substyle="ClipPause"/><quad posn="-8 0 0.1" sizen="8 8" halign="right" valign="center" style="Icons64x64_1" substyle="ClipPause"/><quad posn="16 0 0.2" sizen="8 8" valign="center" style="Icons64x64_1" substyle="ClipPause"/><quad posn="-16 0 0.3" sizen="8 8" halign="right" valign="center" style="Icons64x64_1" substyle="ClipPause"/><quad posn="16 0 0.4" sizen="8 8" valign="center" style="Icons64x64_1" substyle="ClipPause"/><quad posn="-16 0 0.5" sizen="8 8" halign="right" valign="center" style="Icons64x64_1" substyle="ClipPause"/><quad posn="0 0 0.6" sizen="16 6" halign="center" valign="center" style="Bgs1" substyle="BgPager"/><label posn="0 0 0.7" sizen="14 7" halign="center" valign="center2" style="TextValueSmall" text="1 / 1"/></frame><label posn="3 -15.5 2.3" sizen="10 4" textsize="2" textcolor="000" text="$oId"/><label posn="15 -15.5 2.4" sizen="55 4" textsize="2" textcolor="000" text="$oName"/></frame></manialink>', 0, false]);

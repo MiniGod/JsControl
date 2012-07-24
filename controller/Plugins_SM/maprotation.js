@@ -46,6 +46,6 @@ function listMaps(core, login, param) {
 		for (i in params[0]) {
 			tracklist.push([(tracklist.length+1)+'.', params[0][i]['Name'], params[0][i]['Author']]);
 		}
-		panel.ShowList(core, login, {subject: 'Map list', columns_widths: [0.05, 0.55, 0.4], columns_names: ['#', 'Track name', 'Author']}, tracklist, 8);
+		panel.ShowList(core, login, {subject: 'Map list', columns_widths: [0.05, 0.60, 0.35], columns_names: ['#', 'Track name', 'Author']}, tracklist, 20);
 	});
 }
