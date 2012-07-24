@@ -273,8 +273,9 @@ function getResult(data) {
 	var desil = new deserializer();
 	desil.deserialize(xml, function(error, result) {
 		if (error != undefined) {
-			console.log('[ERROR] (XMLRPC Parse) '+error)
+			console.log('[ERROR] (XMLRPC Parse)')
 			console.log('[ERROR] Received data: '+xml)
+			throw error;
 			return;
 		}
 		if((recHandle & 0x80000000) == 0) // Callback. 
