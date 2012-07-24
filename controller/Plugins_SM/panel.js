@@ -68,15 +68,15 @@ exports.Show = function(core, login, settings, lines) {
 	var ml = new ui.Manialink('1');
 	var panel = new ui.Frame('80 90 0');
 	//var quad = new ui.Quad('0 0 0', '80 40', 'BgsPlayerCard', 'BgActivePlayerName');
-	var quad = new ui.Quad('0 0 0', '80 180', '', '');
+	var quad = new ui.Quad('0 0 5', '80 180', '', '');
 	quad.bgcolor = "0008";
 	//var quad2 = new ui.Quad('0 0 0', '80 40', 'Bgs1', 'BgTitleShadow');
 	
 	if (settings.subject != undefined) {
-		var subject = new ui.Label('40 -1.5 2', '$z$s$fff$o'+settings.subject);
+		var subject = new ui.Label('40 -1.5 7', '$z$s$fff$o'+settings.subject);
 		subject.halign = 'center';
 		panel.addItem(subject);
-		var line = new ui.Quad('0 -0.5 1', '80 6', '', '');
+		var line = new ui.Quad('0 -0.5 6', '80 6', '', '');
 		line.bgcolor = "8888";
 		panel.addItem(line);
 		height -= 10;
@@ -99,7 +99,7 @@ exports.Show = function(core, login, settings, lines) {
 			settings.columns_names = [settings.columns_names];
 		var w_depth = 0;
 		for (i in settings.columns_names) {
-			var column = new ui.Label(spacings[w_depth]+' '+height+' 2', '$ccc$s'+settings.columns_names[i], 'TextCardInfoSmall');
+			var column = new ui.Label(spacings[w_depth]+' '+height+' 7', '$ccc$s'+settings.columns_names[i], 'TextCardInfoSmall');
 			column.halign = 'left';
 			column.scale = 0.8;
 			column.size2 = widths[w_depth]+' 0';
@@ -114,7 +114,7 @@ exports.Show = function(core, login, settings, lines) {
 			lines[i] = [lines[i]];
 		var w_depth = 0;
 		for (j in lines[i]) {
-			var column = new ui.Label(spacings[w_depth]+' '+height+' 2', lines[i][j]);
+			var column = new ui.Label(spacings[w_depth]+' '+height+' 7', lines[i][j]);
 			column.halign = 'left';
 			column.size2 = widths[w_depth]+' 0';
 			column.scale = 0.8;
@@ -122,34 +122,34 @@ exports.Show = function(core, login, settings, lines) {
 			w_depth += 1;
 		}
 		//panel.addItem(new ui.Quad('0.5 '+(height+0.1)+' 1', '79 4', 'Bgs1', 'BgList'));
-		var line = new ui.Quad('0 '+(height+0.3)+' 1', '80 4.5', '', '');
+		var line = new ui.Quad('0 '+(height+0.3)+' 6', '80 4.5', '', '');
 		line.bgcolor = "8883";
 		panel.addItem(line);
 		height -= 5;
 	}
 	
-	var prev = new ui.Quad('0 '+height+' 2', '6 6', 'Icons64x64_1', 'ShowLeft2');
+	var prev = new ui.Quad('0 '+height+' 7', '6 6', 'Icons64x64_1', 'ShowLeft2');
 	prev.action = '998';
 	prev.actionkey = '2';
 	panel.addItem(prev);
-	var prevl = new ui.Label('4 '+(height-1.5)+' 2', '$z$fff$o$sPrevious (F6)');
+	var prevl = new ui.Label('4 '+(height-1.5)+' 7', '$z$fff$o$sPrevious (F6)');
 	prevl.scale = 0.8;
 	panel.addItem(prevl);
 	
-	var next = new ui.Quad('74 '+height+' 2', '6 6', 'Icons64x64_1', 'ShowRight2');
+	var next = new ui.Quad('74 '+height+' 7', '6 6', 'Icons64x64_1', 'ShowRight2');
 	next.action = '999';
 	next.actionkey = '3';
 	panel.addItem(next);
-	var nextl = new ui.Label('76 '+(height-1.5)+' 2', '$z$fff$o$sNext (F7)');
+	var nextl = new ui.Label('76 '+(height-1.5)+' 7', '$z$fff$o$sNext (F7)');
 	nextl.scale = 0.8;
 	nextl.halign = 'right';
 	panel.addItem(nextl);
 	
-	var close = new ui.Quad('72 1.5 2', '10 10', 'Icons64x64_1', 'QuitRace');
+	var close = new ui.Quad('72 1.5 7', '10 10', 'Icons64x64_1', 'QuitRace');
 	close.action = '100';
 	close.actionkey = '4';
 	panel.addItem(close);
-	var closel = new ui.Label('77 -5.5 2', '$z$fff$s(F8)');
+	var closel = new ui.Label('77 -5.5 7', '$z$fff$s(F8)');
 	closel.halign = 'center';
 	closel.scale = 0.6;
 	closel.action = '100';
@@ -158,7 +158,7 @@ exports.Show = function(core, login, settings, lines) {
 	
 	if (settings.totalpages == undefined) settings.totalpages = 1;
 	if (settings.currentpage == undefined) settings.currentpage = 1;
-	var page = new ui.Label('40 '+(height-1.7)+' 2', '$z$fff$o$s'+settings.currentpage+'/'+settings.totalpages);
+	var page = new ui.Label('40 '+(height-1.7)+' 7', '$z$fff$o$s'+settings.currentpage+'/'+settings.totalpages);
 	page.halign = 'center';
 	panel.addItem(page);
 
