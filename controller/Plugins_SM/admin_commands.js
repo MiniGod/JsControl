@@ -20,6 +20,7 @@ exports.Init = function(core) {
 	});
 	// Bind events via cmd
 	cmd.onCommand('add', addMap, 2, "Add a map from MX; param: MX id");
+	cmd.onCommand('addlocal', addLocalMap, 2, "Add a local map; param: file name");
 	cmd.onCommand('remove', removeMap, 2, "Remove map; param: file name");
 	cmd.onCommand('removethis', removeThisMap, 2, "Remove current map");
 	cmd.onCommand('skip', skipMap, 1, "Skip to the next map");
@@ -59,10 +60,20 @@ function addMap(core, login, param) {
 		});
 		response.addListener('end', function () {
 			stream.end();
-			core.callMethod('InsertMap', [mapdir+'MX/'+filename]);
+			/*core.callMethod('InsertMap', [mapdir+'MX/'+filename]);
 			core.callMethod('SaveMatchSettings', ['maps.MatchSettings.txt']);
-			core.callMethod('ChatSendServerMessageToLogin', ['$z$o$fff» $o$i$s$4f4Map '+filename+" added!", login]);
+			core.callMethod('ChatSendServerMessageToLogin', ['$z$o$fff» $o$i$s$4f4Map '+filename+" added!", login]);*/
+			addLocalMap(core, login, 'MX/'+filename)
 		});
+	});
+}
+
+function addLocalMap(core, login, param) {
+	core.callMethod('InsertMap', [mapdir+param], function(core, params) {
+		core.callMethod('SaveMatchSettings', ['maps.MatchSettings.txt']);
+		core.callMethod('ChatSendServerMessageToLogin', ['$z$o$fff» $o$i$s$4f4Map '+param+" added!", login]);
+	}, function(core, error) {
+		core.callMethod('ChatSendServerMessageToLogin', ['$z$o$fff» $o$i$s$f44Error adding map: '+error.faultString+'.', login]);
 	});
 }
 
@@ -98,10 +109,11 @@ function restartMap(core, login, param) {
 	});
 }
 
-function mapExists(core, filename, callback) {
+function mapExists(core, filename_, callback) {
+	filename = filename_.toLowerCase()
 	core.callMethod('GetMapList', [-1, 0], function(core, params) {
 		for (i in params[0]) {
-			if (params[0][i]['FileName'] == filename) {
+			if (params[0][i]['FileName'].toLowerCase() == filename) {
 				callback(true);
 				return;
 			}

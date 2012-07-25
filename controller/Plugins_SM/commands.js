@@ -20,6 +20,7 @@ exports.Init = function(core) {
 			core.callMethod('ChatSendServerMessageToLogin', ['$z$o$fff» $o$i$s$f44Command not found.', params[1]]);
 			return;
 		}
+		var param = params[2].substring(d[0].length+2);
 		var level = 0;
 		if (admin.isOperator(params[1]))
 			level = 1;
@@ -29,7 +30,7 @@ exports.Init = function(core) {
 		for (i in commands[d[0]]) {
 			if (level >= commands[d[0]][i][1]) {
 				sendNoPermission = false;
-				commands[d[0]][i][0](core, params[1], d[1]);
+				commands[d[0]][i][0](core, params[1], param);
 			}
 		}
 		if (sendNoPermission)

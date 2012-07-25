@@ -103,9 +103,10 @@ connection.on('connect', function() {
 
 // Core object, this will be shared with all plugins at every callback.
 var core = {
-	callMethod: function(name, params, callback) {
+	callMethod: function(name, params, callback, errorCallback) {
 		// Add to queue
-		corePrivate._methodQueue.push([name, params, callback]);
+		if (!errorCallback) errorCallback = undefined;
+		corePrivate._methodQueue.push([name, params, callback, errorCallback]);
 		corePrivate.callUpdate();
 	},
 	isPluginLoaded: function(fileName) {
@@ -146,6 +147,7 @@ var corePrivate = {
 	// Method handlers
 	_handleId: 0x80000000,
 	_methodCallbacks: {},
+	_methodErrorCallbacks: {},
 	_methodQueue: [],
 	_methodTime: 0,
 	callUpdate: function() {
@@ -156,10 +158,10 @@ var corePrivate = {
 		{
 			var req = this._methodQueue[0];
 			this._methodQueue.splice(0, 1);
-			this.callMethod(req[0], req[1], req[2]);
+			this.callMethod(req[0], req[1], req[2], req[3]);
 		}
 	},
-	callMethod: function(name, params, callback) {
+	callMethod: function(name, params, callback, errorCallback) {
 		var xml = serializer.serializeMethodCall(name, params);
 		//console.log(xml);
 		corePrivate._handleId++;
@@ -176,9 +178,11 @@ var corePrivate = {
 		handleBytes.copy(sendBuffer, 4, 0, handleBytes.length); // Copy.
 		messageBytes.copy(sendBuffer, 8, 0, messageBytes.length); // Copy.
 
-		// Set callback
+		// Set callbacks
 		if (callback)
 			corePrivate._methodCallbacks[corePrivate._handleId] = callback;
+		if (errorCallback)
+			corePrivate._methodErrorCallbacks[corePrivate._handleId] = errorCallback;
 		
 		// Write message to socket. UTF-8 encoding.
 		connection.write(sendBuffer, 'utf8');
@@ -272,14 +276,14 @@ function getResult(data) {
 
 	var desil = new deserializer();
 	desil.deserialize(xml, function(error, result) {
-		if (error != undefined) {
-			console.log('[ERROR] (XMLRPC Parse)')
-			console.log('[ERROR] Received data: '+xml)
-			throw error;
-			return;
-		}
 		if((recHandle & 0x80000000) == 0) // Callback. 
 		{
+			if (error != undefined) {
+				console.log('[ERROR] (XMLRPC Parse)')
+				console.log('[ERROR] Received data: '+xml)
+				throw error;
+				return;
+			}
 			// Call functions in plugins
 			switch (result['methodName']) {
 				case 'ManiaPlanet.PlayerConnect':
@@ -363,8 +367,12 @@ function getResult(data) {
 			corePrivate._methodTime = 0;
 			corePrivate.callUpdate();
 			// Callback
-			if (corePrivate._methodCallbacks[recHandle] != undefined)
-				corePrivate._methodCallbacks[recHandle](core, result['params']);
+			if (error == undefined) {
+				if (corePrivate._methodCallbacks[recHandle] != undefined)
+					corePrivate._methodCallbacks[recHandle](core, result['params']);
+			} else if (corePrivate._methodErrorCallbacks[recHandle] != undefined)
+				corePrivate._methodErrorCallbacks[recHandle](core, error);
+			return;
 		}
 	});
 	xml = '';
