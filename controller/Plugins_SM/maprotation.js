@@ -44,7 +44,6 @@ function listMaps(core, login, param) {
 	core.callMethod('GetMapList', [-1, 0], function(core, params) {
 		var tracklist = [];
 		for (i in params[0]) {
-			for (x = 1; x <= 10; x++)
 			tracklist.push([(tracklist.length+1)+'.', params[0][i]['Name'], params[0][i]['Author'], '[Add]', params[0][i]['FileName']]);
 		}
 		panel.ShowList(core, login, {subject: 'Map list', columns_widths: [0.05, 0.55, 0.25, 0.15, 0], 
