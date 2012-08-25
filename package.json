@@ -8,6 +8,7 @@
     "sax": "0.4.0",
     "mysql": "2.0.0-alpha3"
   },
+  "main": "./controller/controller.js",
   "keywords": ["nadeo", "maniaplanet", "jscontrol", "controller", "trackmania", "shootmania", "questmania"],
   "repository": "http://github.com/Tgys/JsControl"
 }

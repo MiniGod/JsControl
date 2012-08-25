@@ -4,12 +4,12 @@ var deserializer = require('./Lib/deserializer.js');
 var fs = require('fs');
 var stream = require('stream');
 
-if (!fs.existsSync('Plugins/')) {
+if (!fs.existsSync(__dirname + '/Plugins/')) {
 	console.log('Error: ./Plugins/ not found.');
 	return;
 }
 
-if (!fs.existsSync('config.js')) {
+if (!fs.existsSync(__dirname + '/config.js')) {
 	console.log('Error: ./config.js not found.');
 	return;
 }
