@@ -1,113 +1,90 @@
-var net = require('net');
-var serializer = require('./Lib/serializer.js');
-var deserializer = require('./Lib/deserializer.js');
+var gbxremote = require('gbxremote');
 var fs = require('fs');
-var stream = require('stream');
 
 if (!fs.existsSync(__dirname + '/Plugins/')) {
-	console.log('Error: ./Plugins/ not found.');
+	console.error('Error: ./Plugins/ not found.');
 	return;
 }
 
 if (!fs.existsSync(__dirname + '/config.js')) {
-	console.log('Error: ./config.js not found.');
+	console.error('Error: ./config.js not found.');
 	return;
 }
 
 var loadedPlugins = [];
 var loadedPluginNames = [];
 
-delete require.cache['./config.js'];
 var config = require('./config.js', true);
 
-var connection = net.createConnection(config.Port, config.Ip);
+var client = gbxremote.createClient(config.Port, config.Ip);
 
-connection.on('data', function(data) {
-	var slice = data.slice(4, data.length);
-
-	// Handshake. This is the first request and resonse.
-	// This controller isn't designed for the old protocol, but anyway ...
-	if(slice.toString() == 'GBXRemote 2')
-	{
-		// Set the protocol version.
-		this.protocol = 2;
-
-		console.log(' > Protocol: ' + slice.toString());
-		// Load all plugins now...
-		console.log('==== Authing ====');
-		var pass = '';
-		for (var i = config.Password.length - 1; i >= 0; i--)
-			pass += '*';
-		console.log(' > Authing as: '+config.User+'/'+pass);
-		// Send a new api version already
-			// Auth to the server, the protocol was received
-		core.callMethod('Authenticate', [config.User, config.Password], function() {
-			core.callMethod('SetApiVersion', ['2011-10-06'], function() {
-				// We can clear all manialinks now to start fresh
-				core.callMethod('SendHideManialinkPage', []);
-				// Auth done, start loading all plguins and call their export.Init function.
-				console.log('==== Reading plugins ====');
-				for (pid in config.plugins) {
-					console.log(' > Loading '+config.plugins[pid]+'...');
-					var plugin = require('./Plugins/'+config.plugins[pid]);
-					if (plugin.Init && plugin.Init(core) === true) {
-						loadedPlugins.push(plugin);
-						loadedPluginNames.push(config.plugins[pid]);
-					} else
-						console.log(' ! Failed to load plugin '+config.plugins[pid]+'.');
-				}
-				console.log('==== Loading plugins completed, all set! ====');
-				// Enable callbacks, all plugins were loaded.
-				core.callMethod('EnableCallbacks', [true]);
-				// Enable timer for onEverySecond event
-				setInterval(function() {
-					callbackHandle(corePrivate._onEverySecondCallbacks, []);
-				}, 1000)
-			});
-		});
-		// Bind onEverySecond for a stack push, in case some request failed so the queue just goes on with a delay.
-		core.onEverySecond(function(core, params) {
-			corePrivate.callUpdate();
-		});
-	}
-
-	else
-	{
-		// Process everything else.
-		getResult(data);
-	}
+client.on('connect', function() {
+	// Load all plugins now...
+	console.log('==== Authing ====');
+	var pass = '';
+	for (var i = config.Password.length - 1; i >= 0; i--)
+		pass += '*';
+	console.log(' > Authing as: '+config.User+'/'+pass);
+	// Send a new api version already
+	// Auth to the server, the protocol was received
+	client.query('Authenticate', [config.User, config.Password], function(err, res) {
+		if (res == true) {
+			// Since we authenticated successfully, the answer from these
+			// queries doesnt matter. It should work! (Unless human error)
+			client.query('SetApiVersion', ['2012-06-19']); // Updated the API version
+			// We can clear all manialinks now to start fresh
+			client.query('SendHideManialinkPage');
+			
+			// Auth done, start loading all plguins and call their export.Init function.
+			console.log('==== Reading plugins ====');
+			for (pid in config.plugins) {
+				console.log(' > Loading '+config.plugins[pid]+'...');
+				var plugin = require('./Plugins/'+config.plugins[pid]);
+				if (plugin.Init && plugin.Init(core) === true) {
+					loadedPlugins.push(plugin);
+					loadedPluginNames.push(config.plugins[pid]);
+				} else
+					console.log(' ! Failed to load plugin '+config.plugins[pid]+'.');
+			}
+			console.log('==== Loading plugins completed, all set! ====');
+			
+			// Enable callbacks, all plugins were loaded.
+			client.query('EnableCallbacks', [true]);
+		}
+	});
 });
 
 // Error.
-connection.on('error', function(error) {
-	console.log(' ! Error: ' + error);
+client.on('error', function(error) {
+	console.error(' ! Error: ' + error);
 });
 
 // Close.
-connection.on('close', function(isError) {
+/*
+client.on('close', function(isError) {
 	if (isError)
 		console.log(' ! Connection to the remote server has been closed because of an error.');
 	else
 		console.log(' ! Connection to the remote server has been closed.');
 });
+*/
 
 // Timeout.
-connection.on('timeout', function() {
+/*
+client.on('timeout', function() {
 	console.log(' ! Connection to the remote server timed out.');
 });
-
-// Connect.
-connection.on('connect', function() {
-	console.log(' > Connected succesfully, waiting for protocol...');
-});
+*/
 
 // Core object, this will be shared with all plugins at every callback.
 var core = {
-	callMethod: function(name, params, callback, errorCallback) {
-		// Add to queue
-		if (!errorCallback) errorCallback = undefined;
-		corePrivate._methodQueue.push([name, params, callback, errorCallback]);
-		corePrivate.callUpdate();
+	client: client,
+	// Deprecate this? make plugins talk directly to `client`?
+	callMethod: function(method, params, success, error) {
+		client.query(method, params, function(err, res) {
+			if (err) { if (error) error(core, err); }
+			else { if (success) success(core, [res]); }
+		});
 	},
 	isPluginLoaded: function(fileName) {
 		for (key in loadedPluginNames)
@@ -144,49 +121,6 @@ var core = {
 
 // Core object, but not shared with plugins
 var corePrivate = {
-	// Method handlers
-	_handleId: 0x80000000,
-	_methodCallbacks: {},
-	_methodErrorCallbacks: {},
-	_methodQueue: [],
-	_methodTime: 0,
-	callUpdate: function() {
-		if (this._methodQueue.length == 0) // Nothing to update
-			return;
-		var time = (new Date()).getTime();
-		if (this._methodTime == 0 || this._methodTime + 500 < time)
-		{
-			var req = this._methodQueue[0];
-			this._methodQueue.splice(0, 1);
-			this.callMethod(req[0], req[1], req[2], req[3]);
-		}
-	},
-	callMethod: function(name, params, callback, errorCallback) {
-		var xml = serializer.serializeMethodCall(name, params);
-		//console.log(xml);
-		corePrivate._handleId++;
-
-		var messageBytes = new Buffer(xml);
-		var sizeBytes = new Buffer(4);
-		var handleBytes = new Buffer(4);
-		
-		sizeBytes.writeUInt32LE(messageBytes.length, 0);
-		handleBytes.writeUInt32LE(corePrivate._handleId, 0);
-		
-		var sendBuffer = new Buffer(messageBytes.length + sizeBytes.length + handleBytes.length);
-		sizeBytes.copy(sendBuffer, 0, 0, sizeBytes.length); // Copy.
-		handleBytes.copy(sendBuffer, 4, 0, handleBytes.length); // Copy.
-		messageBytes.copy(sendBuffer, 8, 0, messageBytes.length); // Copy.
-
-		// Set callbacks
-		if (callback)
-			corePrivate._methodCallbacks[corePrivate._handleId] = callback;
-		if (errorCallback)
-			corePrivate._methodErrorCallbacks[corePrivate._handleId] = errorCallback;
-		
-		// Write message to socket. UTF-8 encoding.
-		connection.write(sendBuffer, 'utf8');
-	},
 	// Callback handlers
 	_onPlayerConnectCallbacks: [],
 	_onPlayerDisconnectCallbacks: [],
@@ -213,6 +147,7 @@ var corePrivate = {
 	_onVoteUpdatedCallbacks: [],
 	_onRulesScriptCallbackCallbacks: [],
 	_onEverySecondCallbacks: []
+
 }
 
 /**
@@ -221,166 +156,86 @@ var corePrivate = {
  * @param {Buffer} data 	- The data from the response.
  */ 
 
-var xml = '';
-var isReading = false;
-var recHandle = 0;
-var size = 0;
-var bytesLeft = 0;
-var buffer = new Buffer(0);
-
-function getResult(data) {
-	var message;
-	buffer = new Buffer(0);
-	if (isReading == false) {
-		// New call
-		isReading = true;
-		size = 0;
-		bytesLeft = 0;
-		recHandle = 0;
-
-		size = data.slice(0, 4).readUInt32LE(0); // Size.
-		bytesLeft = size;
-
-		recHandle = data.slice(4, 8).readUInt32LE(0); // Handle.
-
-		if (data.length-8 > bytesLeft) { // If so, another call comes right after
-			buffer = data.slice(bytesLeft+8, data.length);
-			xml = data.slice(8,bytesLeft+8).toString('utf8');
-		} else
-			xml = data.slice(8,data.length).toString('utf8');
-		bytesLeft -= data.length-8;
-	} else {
-		if (data.length > bytesLeft) { // If so, another call comes right after
-			buffer = data.slice(bytesLeft, data.length);
-			xml += data.slice(0, bytesLeft).toString('utf8'); 
-		} else
-			xml += data.slice(0, data.length).toString('utf8');
-		bytesLeft -= data.length;
+client.on('callback', function(method, params) {
+	// Call functions in plugins
+	switch (method) {
+		case 'ManiaPlanet.PlayerConnect':
+		    callbackHandle(corePrivate._onPlayerConnectCallbacks, params);
+		    break;
+		case 'ManiaPlanet.PlayerDisconnect':
+		    callbackHandle(corePrivate._onPlayerDisconnectCallbacks, params);
+		    break;
+		case 'ManiaPlanet.PlayerChat':
+		    callbackHandle(corePrivate._onPlayerChatCallbacks, params);
+		    break;
+		case 'ManiaPlanet.PlayerManialinkPageAnswer':
+		    callbackHandle(corePrivate._onPlayerManialinkPageAnswerCallbacks, params);
+		    break;
+		case 'ManiaPlanet.Echo':
+		    callbackHandle(corePrivate._onEchoCallbacks, params);
+		    break;
+		case 'ManiaPlanet.ServerStart':
+		    callbackHandle(corePrivate._onServerStartCallbacks, params);
+		    break;
+		case 'ManiaPlanet.ServerStop':
+		    callbackHandle(corePrivate._onServerStopCallbacks, params);
+		    break;
+		case 'ManiaPlanet.BeginMatch':
+		    callbackHandle(corePrivate._onBeginMatchCallbacks, params);
+		    break;
+		case 'ManiaPlanet.EndMatch':
+		    callbackHandle(corePrivate._onEndMatchCallbacks, params);
+		    break;
+		case 'ManiaPlanet.BeginMap':
+		    callbackHandle(corePrivate._onBeginMapCallbacks, params);
+		    break;
+		case 'ManiaPlanet.EndMap':
+		    callbackHandle(corePrivate._onEndMapCallbacks, params);
+		    break;
+		case 'ManiaPlanet.BeginRound':
+		    callbackHandle(corePrivate._onBeginRoundCallbacks, params);
+		    break;
+		case 'ManiaPlanet.EndRound':
+		    callbackHandle(corePrivate._onEndRoundCallbacks, params);
+		    break;
+		case 'ManiaPlanet.StatusChanged':
+		    callbackHandle(corePrivate._onStatusChangedCallbacks, params);
+		    break;
+		case 'TrackMania.PlayerCheckpoint':
+		    callbackHandle(corePrivate._onPlayerCheckpointCallbacks, params);
+		    break;
+		case 'TrackMania.PlayerFinish':
+		    callbackHandle(corePrivate._onPlayerFinishCallbacks, params);
+		    break;
+		case 'TrackMania.PlayerIncoherence':
+		    callbackHandle(corePrivate._onPlayerIncoherenceCallbacks, params);
+		    break;
+		case 'ManiaPlanet.BillUpdated':
+		    callbackHandle(corePrivate._onBillUpdatedCallbacks, params);
+		    break;
+		case 'ManiaPlanet.TunnelDataReceived':
+		    callbackHandle(corePrivate._onTunnelDataReceivedCallbacks, params);
+		    break;
+		case 'ManiaPlanet.MapListModified':
+		    callbackHandle(corePrivate._onMapListModifiedCallbacks, params);
+		    break;
+		case 'ManiaPlanet.PlayerInfoChanged':
+		    callbackHandle(corePrivate._onPlayerInfoChangedCallbacks, params);
+		    break;
+		case 'ManiaPlanet.ManualFlowControlTransition':
+		    callbackHandle(corePrivate._onManualFlowControlTransitionCallbacks, params);
+		    break;
+		case 'ManiaPlanet.VoteUpdated':
+		    callbackHandle(corePrivate._onVoteUpdatedCallbacks, params);
+		    break;
+		case 'ManiaPlanet.RulesScriptCallback':
+		case 'ManiaPlanet.ModeScriptCallback':
+		    callbackHandle(corePrivate._onRulesScriptCallbackCallbacks, params);
+		    break;
+		default:
+			console.log('Unhandled callback: ' + method);
 	}
-
-	if (size == 0 || size > 4096*1024 || recHandle == 0)
-	{
-		console.log('Transport error: Handle:'+recHandle)
-		console.log('  Buffer size: '+buffer.length)
-		console.log('  Data size  : '+size)
-		console.log('  Bytes left : '+bytesLeft)
-		console.log('  XML size   : '+xml.length)
-		// start over in case of weirdness
-		xml = '';
-		isReading = false;
-		return;
-	}
-	
-	if (bytesLeft > 0) // Only a part of the message is received, waiting for the rest...
-		return;
-
-	var desil = new deserializer();
-	desil.deserialize(xml, function(error, result) {
-		if((recHandle & 0x80000000) == 0) // Callback. 
-		{
-			if (error != undefined) {
-				console.log('[ERROR] (XMLRPC Parse)')
-				console.log('[ERROR] Received data: '+xml)
-				throw error;
-				return;
-			}
-			// Call functions in plugins
-			switch (result['methodName']) {
-				case 'ManiaPlanet.PlayerConnect':
-				    callbackHandle(corePrivate._onPlayerConnectCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.PlayerDisconnect':
-				    callbackHandle(corePrivate._onPlayerDisconnectCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.PlayerChat':
-				    callbackHandle(corePrivate._onPlayerChatCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.PlayerManialinkPageAnswer':
-				    callbackHandle(corePrivate._onPlayerManialinkPageAnswerCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.Echo':
-				    callbackHandle(corePrivate._onEchoCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.ServerStart':
-				    callbackHandle(corePrivate._onServerStartCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.ServerStop':
-				    callbackHandle(corePrivate._onServerStopCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.BeginMatch':
-				    callbackHandle(corePrivate._onBeginMatchCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.EndMatch':
-				    callbackHandle(corePrivate._onEndMatchCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.BeginMap':
-				    callbackHandle(corePrivate._onBeginMapCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.EndMap':
-				    callbackHandle(corePrivate._onEndMapCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.BeginRound':
-				    callbackHandle(corePrivate._onBeginRoundCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.EndRound':
-				    callbackHandle(corePrivate._onEndRoundCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.StatusChanged':
-				    callbackHandle(corePrivate._onStatusChangedCallbacks, result['params']);
-				    break;
-				case 'TrackMania.PlayerCheckpoint':
-				    callbackHandle(corePrivate._onPlayerCheckpointCallbacks, result['params']);
-				    break;
-				case 'TrackMania.PlayerFinish':
-				    callbackHandle(corePrivate._onPlayerFinishCallbacks, result['params']);
-				    break;
-				case 'TrackMania.PlayerIncoherence':
-				    callbackHandle(corePrivate._onPlayerIncoherenceCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.BillUpdated':
-				    callbackHandle(corePrivate._onBillUpdatedCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.TunnelDataReceived':
-				    callbackHandle(corePrivate._onTunnelDataReceivedCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.MapListModified':
-				    callbackHandle(corePrivate._onMapListModifiedCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.PlayerInfoChanged':
-				    callbackHandle(corePrivate._onPlayerInfoChangedCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.ManualFlowControlTransition':
-				    callbackHandle(corePrivate._onManualFlowControlTransitionCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.VoteUpdated':
-				    callbackHandle(corePrivate._onVoteUpdatedCallbacks, result['params']);
-				    break;
-				case 'ManiaPlanet.RulesScriptCallback':
-				case 'ManiaPlanet.ModeScriptCallback':
-				    callbackHandle(corePrivate._onRulesScriptCallbackCallbacks, result['params']);
-				    break;
-				default:
-					console.log('Unhandled callback: ' + result['methodName']);
-			}
-		} else { // Method response
-			// Instantly call next item in queue
-			corePrivate._methodTime = 0;
-			corePrivate.callUpdate();
-			// Callback
-			if (error == undefined) {
-				if (corePrivate._methodCallbacks[recHandle] != undefined)
-					corePrivate._methodCallbacks[recHandle](core, result['params']);
-			} else if (corePrivate._methodErrorCallbacks[recHandle] != undefined)
-				corePrivate._methodErrorCallbacks[recHandle](core, error);
-			return;
-		}
-	});
-	xml = '';
-	isReading = false;
-	// If some data is in the buffer, do it again..
-	if (buffer.length > 0)
-		getResult(buffer);
-};
+});
 
 function callbackHandle(funcs, params) {
 	for (i in funcs)
