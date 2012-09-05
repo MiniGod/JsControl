@@ -2,7 +2,7 @@ var admins = [];
 var operators = [];
 
 exports.Init = function(core) {
-	var config = require('../config_admin.js');
+	var config = require('../config/config_admin.js');
 	admins = config.admins;
 	operators = config.operators;
 	console.log('   * '+admins.length+' admins and '+operators.length+' operators found.');

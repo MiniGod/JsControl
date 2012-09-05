@@ -7,7 +7,7 @@
     "gbxremote": "0.1.x",
     "mysql": "2.0.0-alpha3"
   },
-  "main": "./controller/controller.js",
+  "main": "./JsControl.js",
   "keywords": ["nadeo", "maniaplanet", "jscontrol", "controller", "trackmania", "shootmania", "questmania"],
   "repository": "http://github.com/Tgys/JsControl"
 }

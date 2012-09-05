@@ -1,31 +1,13 @@
 var gbxremote = require('gbxremote');
-var fs = require('fs');
-
-if (!fs.existsSync(__dirname + '/Plugins/')) {
-	console.error('Error: ./Plugins/ not found.');
-	return;
-}
-
-if (!fs.existsSync(__dirname + '/config.js')) {
-	console.error('Error: ./config.js not found.');
-	return;
-}
 
 var loadedPlugins = [];
 var loadedPluginNames = [];
 
-var config = require('./config.js', true);
+var config = require('../config/config.js', true);
 
 var client = gbxremote.createClient(config.Port, config.Ip);
 
 client.on('connect', function() {
-	// Load all plugins now...
-	console.log('==== Authing ====');
-	var pass = '';
-	for (var i = config.Password.length - 1; i >= 0; i--)
-		pass += '*';
-	console.log(' > Authing as: '+config.User+'/'+pass);
-	// Send a new api version already
 	// Auth to the server, the protocol was received
 	client.query('Authenticate', [config.User, config.Password], function(err, res) {
 		if (res == true) {
@@ -39,7 +21,7 @@ client.on('connect', function() {
 			console.log('==== Reading plugins ====');
 			for (pid in config.plugins) {
 				console.log(' > Loading '+config.plugins[pid]+'...');
-				var plugin = require('./Plugins/'+config.plugins[pid]);
+				var plugin = require('../Plugins/'+config.plugins[pid]);
 				if (plugin.Init && plugin.Init(core) === true) {
 					loadedPlugins.push(plugin);
 					loadedPluginNames.push(config.plugins[pid]);
@@ -60,21 +42,12 @@ client.on('error', function(error) {
 });
 
 // Close.
-/*
 client.on('close', function(isError) {
 	if (isError)
 		console.log(' ! Connection to the remote server has been closed because of an error.');
 	else
 		console.log(' ! Connection to the remote server has been closed.');
 });
-*/
-
-// Timeout.
-/*
-client.on('timeout', function() {
-	console.log(' ! Connection to the remote server timed out.');
-});
-*/
 
 // Core object, this will be shared with all plugins at every callback.
 var core = {
