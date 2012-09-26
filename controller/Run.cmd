@@ -1,2 +1,0 @@
-node controller.js
-pause
