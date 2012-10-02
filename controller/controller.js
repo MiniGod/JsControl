@@ -1,221 +1,212 @@
-var gbxremote = require('gbxremote');
+var VERSION = '0.1.1'
 
-var loadedPlugins = [];
-var loadedPluginNames = [];
+// Packages
+  , gbxremote = require('gbxremote')
+  , fs = require('fs')
+  ;
 
-var config = require('../config/config.js', true);
+var Core = function() {
+	console.log(' ####################');
+	console.log(' # JsControl v%s #', VERSION);
+	console.log(' ####################\n');
 
-var client = gbxremote.createClient(config.Port, config.Ip);
-
-client.on('connect', function() {
-	// Auth to the server, the protocol was received
-	client.query('Authenticate', [config.User, config.Password], function(err, res) {
-		if (res == true) {
-			// Since we authenticated successfully, the answer from these
-			// queries doesnt matter. It should work! (Unless human error)
-			client.query('SetApiVersion', ['2012-06-19']); // Updated the API version
-			// We can clear all manialinks now to start fresh
-			client.query('SendHideManialinkPage');
-			
-			// Auth done, start loading all plguins and call their export.Init function.
-			console.log('==== Reading plugins ====');
-			for (pid in config.plugins) {
-				console.log(' > Loading '+config.plugins[pid]+'...');
-				var plugin = require('../Plugins/'+config.plugins[pid]);
-				if (plugin.Init && plugin.Init(core) === true) {
-					loadedPlugins.push(plugin);
-					loadedPluginNames.push(config.plugins[pid]);
-				} else
-					console.log(' ! Failed to load plugin '+config.plugins[pid]+'.');
-			}
-			console.log('==== Loading plugins completed, all set! ====');
-			
-			// Enable callbacks, all plugins were loaded.
-			client.query('EnableCallbacks', [true]);
-		}
-	});
-});
-
-// Error.
-client.on('error', function(error) {
-	console.error(' ! Error: ' + error);
-});
-
-// Close.
-client.on('close', function(isError) {
-	if (isError)
-		console.log(' ! Connection to the remote server has been closed because of an error.');
-	else
-		console.log(' ! Connection to the remote server has been closed.');
-});
-
-// Core object, this will be shared with all plugins at every callback.
-var core = {
-	client: client,
-	// Deprecate this? make plugins talk directly to `client`?
-	callMethod: function(method, params, success, error) {
-		client.query(method, params, function(err, res) {
-			if (err) { if (error) error(core, err); }
-			else { if (success) success(core, [res]); }
+	var self = this;
+	
+	this.config = require('../config/config.json');
+	this.plugins =  {};
+	
+	// Connect to the server
+	this.connect();
+	
+	// Load plugins when connected connect
+	this.once('connect', function() {
+		self.loadPlugins();
+		
+		// If an uncaught exception happens after the plugins has
+		// been loaded, don't kill the controller!
+		process.on('uncaughtException', function(err) {
+			console.log("*********************************************");
+			console.log("[Error]", err);
+			console.log("       ", err.stack);
+			console.log("*********************************************");
 		});
-	},
-	isPluginLoaded: function(fileName) {
-		for (key in loadedPluginNames)
-			if (loadedPluginNames[key] == fileName)
-				return true;
-		return false;
-	},
-	onPlayerConnect: function(callback) { corePrivate._onPlayerConnectCallbacks.push(callback); },
-	onPlayerDisconnect: function(callback) { corePrivate._onPlayerDisconnectCallbacks.push(callback); },
-	onPlayerChat: function(callback) { corePrivate._onPlayerChatCallbacks.push(callback); },
-	onPlayerManialinkPageAnswer: function(callback) { corePrivate._onPlayerManialinkPageAnswerCallbacks.push(callback); },
-	onEcho: function(callback) { corePrivate._onEchoCallbacks.push(callback); },
-	onServerStart: function(callback) { corePrivate._onServerStartCallbacks.push(callback); },
-	onServerStop: function(callback) { corePrivate._onServerStopCallbacks.push(callback); },
-	onBeginMatch: function(callback) { corePrivate._onBeginMatchCallbacks.push(callback); },
-	onEndMatch: function(callback) { corePrivate._onEndMatchCallbacks.push(callback); },
-	onBeginMap: function(callback) { corePrivate._onBeginMapCallbacks.push(callback); },
-	onEndMap: function(callback) { corePrivate._onEndMapCallbacks.push(callback); },
-	onBeginRound: function(callback) { corePrivate._onBeginRoundCallbacks.push(callback); },
-	onEndRound: function(callback) { corePrivate._onEndRoundCallbacks.push(callback); },
-	onStatusChanged: function(callback) { corePrivate._onStatusChangedCallbacks.push(callback); },
-	onPlayerCheckpoint: function(callback) { corePrivate._onPlayerCheckpointCallbacks.push(callback); },
-	onPlayerFinish: function(callback) { corePrivate._onPlayerFinishCallbacks.push(callback); },
-	onPlayerIncoherence: function(callback) { corePrivate._onPlayerIncoherenceCallbacks.push(callback); },
-	onBillUpdated: function(callback) { corePrivate._onBillUpdatedCallbacks.push(callback); },
-	onTunnelDataReceived: function(callback) { corePrivate._onTunnelDataReceivedCallbacks.push(callback); },
-	onMapListModified: function(callback) { corePrivate._onMapListModifiedCallbacks.push(callback); },
-	onPlayerInfoChanged: function(callback) { corePrivate._onPlayerInfoChangedCallbacks.push(callback); },
-	onManualFlowControlTransition: function(callback) { corePrivate._onManualFlowControlTransitionCallbacks.push(callback); },
-	onVoteUpdated: function(callback) { corePrivate._onVoteUpdatedCallbacks.push(callback); },
-	onRulesScriptCallback: function(callback) { corePrivate._onRulesScriptCallbackCallbacks.push(callback); },
-	onEverySecond: function(callback) { corePrivate._onEverySecondCallbacks.push(callback); }
+	});
 };
 
-// Core object, but not shared with plugins
-var corePrivate = {
-	// Callback handlers
-	_onPlayerConnectCallbacks: [],
-	_onPlayerDisconnectCallbacks: [],
-	_onPlayerChatCallbacks: [],
-	_onPlayerManialinkPageAnswerCallbacks: [],
-	_onEchoCallbacks: [],
-	_onServerStartCallbacks: [],
-	_onServerStopCallbacks: [],
-	_onBeginMatchCallbacks: [],
-	_onEndMatchCallbacks: [],
-	_onBeginMapCallbacks: [],
-	_onEndMapCallbacks: [],
-	_onBeginRoundCallbacks: [],
-	_onEndRoundCallbacks: [],
-	_onStatusChangedCallbacks: [],
-	_onPlayerCheckpointCallbacks: [],
-	_onPlayerFinishCallbacks: [],
-	_onPlayerIncoherenceCallbacks: [],
-	_onBillUpdatedCallbacks: [],
-	_onTunnelDataReceivedCallbacks: [],
-	_onMapListModifiedCallbacks: [],
-	_onPlayerInfoChangedCallbacks: [],
-	_onManualFlowControlTransitionCallbacks: [],
-	_onVoteUpdatedCallbacks: [],
-	_onRulesScriptCallbackCallbacks: [],
-	_onEverySecondCallbacks: []
+// Inherit EventEmitter
+Core.prototype = Object.create(require('events').EventEmitter.prototype);
 
+/**
+ * Connects and authenticates, and then fires `connect` when done.
+ */
+Core.prototype.connect = function() {
+	var self = this;
+
+	console.log('Connecting to %s:%d', this.config.ip, this.config.port);
+	this.client = gbxremote.createClient(this.config.port, this.config.ip);
+	
+	this.client.on('connect', function() {
+		
+		// Dump info about the connected server...
+		// TODO: Set API, then do this... and then enable callbacks and emit connect.... or? and auth somewhere in there.
+		self.client.query('GetVersion', function(err, res) {
+			console.log('Connected to %s@%s v%s - build %s - API: %s\n', res.Name, res.TitleId, res.Version, res.Build, res.ApiVersion);
+		});
+
+		self.client.query('Authenticate', [self.config.user, self.config.pass], function(err, res) {
+			if (res == true) {
+				// Use latest API version
+				self.client.query('SetApiVersion', '2012-06-19');
+				// Enable callbacks
+				self.client.query('EnableCallbacks', true);
+				// Ready now
+				self.emit('connect');
+			} else {
+				throw "Could not authenticate. Wrong user or pass?";
+			}
+		});
+	});
+
+	this.client.on('error', function (err) {
+		console.log(err.stack);
+	});
+
+	this.client.on('close', function(wasError) {
+		if (wasError)
+			console.log(' ! Connection to the server has been closed due to an error.');
+		else
+			console.log(' ! Connection to the server has been closed.');
+
+		// Make sure node shuts down. (setTimeout will for instance keep node alive)
+		process.exit();
+	});
+};
+
+/**
+ * Loads all the plugins listed in the config file
+ */
+Core.prototype.loadPlugins = function() {
+	console.log('Loading plugins...');
+
+	// Remember the plugins that failed, and inform at end
+	var failed = [];
+	if (this.config.plugins.length > 0) {
+
+		// Load the plugins
+		for (i in this.config.plugins) {
+			if (!this.loadPlugin(this.config.plugins[i])) {
+				failed.push(this.config.plugins[i]);
+			}
+		}
+
+		// If any plugins failed to load, inform the user.
+		if (failed.length > 0) {
+			console.log('*******');
+			console.log('These plugins failed to load:');
+			console.log(failed.join(', '));
+			console.log('*******');
+		} else {
+			console.log('All plugins loaded');
+		}
+
+		console.log('');
+	}
+
+	if (this.config.plugins.length == 0 || failed.length == this.config.plugins.length) {
+		console.log('No plugins!');
+		console.log('Exiting...');
+		setTimeout(process.exit, 1000);
+		return;
+	}
+
+	// Now call the .run function of the loaded plugins
+	
+	for (var name in this.plugins)
+		if (this.plugins.hasOwnProperty(name))
+			this.plugins[name].run();
+};
+
+/**
+ * Loads the plugin `name`
+ * @param name {String} Filename or foldername of name
+ * @returns {Boolean} true if plugin loaded successfully, or if it has already been loaded. Otherwise false.
+ */
+Core.prototype.loadPlugin = function(name) {
+	// Remove .js from plugin name.
+	name = name.replace(/\.js$/i, '');
+
+	// If the plugin has been loaded already, just return true
+	if (this.plugins.hasOwnProperty(name))
+		return true;
+	
+	try {
+		var plugin = require('../plugins/' + name);
+		if (typeof plugin === 'function') {
+			console.log(' > Load plugin:', name);
+
+			var configPath = __dirname + '/../config/plugins/' + name + '.json';
+
+			// Have to bind `this.client` to the on and query functions. dno why... kinda weird
+			var self = this;
+			
+			var fakeCore = {
+				config: fs.existsSync(configPath) ? require(configPath) : {},
+				on: function() {
+					self.client.on.apply(self.client, arguments);
+				},
+				query: function() {
+					self.client.query.apply(self.client, arguments);
+				}
+			};
+
+			this.plugins[name] = new plugin(fakeCore);
+
+			return true;
+		}
+	} catch (err) {
+		console.log(err);
+		console.log(err.stack);
+		if (err.code == 'MODULE_NOT_FOUND') {
+			// Plugins not found!
+			//console.log(' Load plugin: %s  -- NOT FOUND', name);
+		}
+	}
+
+	return false;
+};
+
+/**
+ * Returns the instance of the plugin
+ * Throws error if the plugin is not loaded, or does not load successfully.
+ * @param plugin {string} Filename or foldername of plugin
+ * @returns instance of plugin
+ */
+Core.prototype.requirePlugin = function(plugin) {
+	// Remove .js
+	plugin = plugin.replace(/\.js$/i, '');
+
+	// Load plugin if not loaded, or fail to load
+	if (this.loadPlugin(plugin)) {
+		return this.plugins[plugin];
+	} else {
+		throw new Error('Plugin `' + plugin + '` is not installed');
+	}
+};
+
+/**
+ * Global alias of `Core.prototype.requirePlugin`.
+ * @returns the instance of the plugin @see Core.prototype.requirePlugin(plugin)
+ */
+GLOBAL.requirePlugin = function() {
+	return Core.prototype.requirePlugin.apply(core, arguments);
 }
 
 /**
- * Proccesses a response.
- *
- * @param {Buffer} data 	- The data from the response.
- */ 
-
-client.on('callback', function(method, params) {
-	// Call functions in plugins
-	switch (method) {
-		case 'ManiaPlanet.PlayerConnect':
-		    callbackHandle(corePrivate._onPlayerConnectCallbacks, params);
-		    break;
-		case 'ManiaPlanet.PlayerDisconnect':
-		    callbackHandle(corePrivate._onPlayerDisconnectCallbacks, params);
-		    break;
-		case 'ManiaPlanet.PlayerChat':
-		    callbackHandle(corePrivate._onPlayerChatCallbacks, params);
-		    break;
-		case 'ManiaPlanet.PlayerManialinkPageAnswer':
-		    callbackHandle(corePrivate._onPlayerManialinkPageAnswerCallbacks, params);
-		    break;
-		case 'ManiaPlanet.Echo':
-		    callbackHandle(corePrivate._onEchoCallbacks, params);
-		    break;
-		case 'ManiaPlanet.ServerStart':
-		    callbackHandle(corePrivate._onServerStartCallbacks, params);
-		    break;
-		case 'ManiaPlanet.ServerStop':
-		    callbackHandle(corePrivate._onServerStopCallbacks, params);
-		    break;
-		case 'ManiaPlanet.BeginMatch':
-		    callbackHandle(corePrivate._onBeginMatchCallbacks, params);
-		    break;
-		case 'ManiaPlanet.EndMatch':
-		    callbackHandle(corePrivate._onEndMatchCallbacks, params);
-		    break;
-		case 'ManiaPlanet.BeginMap':
-		    callbackHandle(corePrivate._onBeginMapCallbacks, params);
-		    break;
-		case 'ManiaPlanet.EndMap':
-		    callbackHandle(corePrivate._onEndMapCallbacks, params);
-		    break;
-		case 'ManiaPlanet.BeginRound':
-		    callbackHandle(corePrivate._onBeginRoundCallbacks, params);
-		    break;
-		case 'ManiaPlanet.EndRound':
-		    callbackHandle(corePrivate._onEndRoundCallbacks, params);
-		    break;
-		case 'ManiaPlanet.StatusChanged':
-		    callbackHandle(corePrivate._onStatusChangedCallbacks, params);
-		    break;
-		case 'TrackMania.PlayerCheckpoint':
-		    callbackHandle(corePrivate._onPlayerCheckpointCallbacks, params);
-		    break;
-		case 'TrackMania.PlayerFinish':
-		    callbackHandle(corePrivate._onPlayerFinishCallbacks, params);
-		    break;
-		case 'TrackMania.PlayerIncoherence':
-		    callbackHandle(corePrivate._onPlayerIncoherenceCallbacks, params);
-		    break;
-		case 'ManiaPlanet.BillUpdated':
-		    callbackHandle(corePrivate._onBillUpdatedCallbacks, params);
-		    break;
-		case 'ManiaPlanet.TunnelDataReceived':
-		    callbackHandle(corePrivate._onTunnelDataReceivedCallbacks, params);
-		    break;
-		case 'ManiaPlanet.MapListModified':
-		    callbackHandle(corePrivate._onMapListModifiedCallbacks, params);
-		    break;
-		case 'ManiaPlanet.PlayerInfoChanged':
-		    callbackHandle(corePrivate._onPlayerInfoChangedCallbacks, params);
-		    break;
-		case 'ManiaPlanet.ManualFlowControlTransition':
-		    callbackHandle(corePrivate._onManualFlowControlTransitionCallbacks, params);
-		    break;
-		case 'ManiaPlanet.VoteUpdated':
-		    callbackHandle(corePrivate._onVoteUpdatedCallbacks, params);
-		    break;
-		case 'ManiaPlanet.RulesScriptCallback':
-		case 'ManiaPlanet.ModeScriptCallback':
-		    callbackHandle(corePrivate._onRulesScriptCallbackCallbacks, params);
-		    break;
-		default:
-			console.log('Unhandled callback: ' + method);
-	}
-});
-
-function callbackHandle(funcs, params) {
-	for (i in funcs)
-		funcs[i](core, params);
+ * Global alias of `core.client.query`.
+ */
+GLOBAL.query = function() {
+	return core.client.query.apply(core.client, arguments);
 }
 
-process.on('uncaughtException', function(err) {
-    console.log("[Error]", err);
-    console.log("       ", err.stack);
-});
+// Start everything...
+var core = new Core();

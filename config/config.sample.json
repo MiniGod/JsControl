@@ -1,0 +1,11 @@
+{
+	"ip": "localhost",
+	"port": "5000",
+
+	"user": "SuperAdmin",
+	"pass": "SuperAdmin",
+
+	"plugins": [
+		"playerlist"
+	]
+}
