@@ -2,9 +2,10 @@
 node_modules/
 
 # Ignore plugins folder
-Plugins/
+#/plugins/
 
-# Ignore config file
-config.js
-config_admin.js
-config_database.js
+# Ignore config files, except samples
+/config/*.js*
+!/config/*.sample*
+/config/plugins/*.js*
+!/config/plugins/*.sample*
