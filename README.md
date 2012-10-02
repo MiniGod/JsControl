@@ -6,19 +6,21 @@ Installation instructions
 =========
 1. [Install Node.JS](http://nodejs.org/)
 2. Download JsControl and extract it somewhere
-3. Execute *'npm install'* in the directory the *package.json* file is, or run *Install dependencies.cmd* if you're using Windows.
-4. Rename *Plugins_SM* **or** *Plugins_TM* to *Plugins*, according to the game you use.
-5. Rename *config.sampleSM.js* **or** *config.sampleTM.js* to *config.js*, according to the game you use.
-6. Open the just renamed *config.js* and set the four upper settings correctly.
-7. Install MySQL and set up a database. Execute the *Sql/mysql.sql* file on the just made MySQL database.
-8. Set the correct values in *config_database.js*.
-9. Execute *'node controller.js'* in the directory the *controller.js* is inside. You can also just run *Run.bat* if you're using Windows.
+3. Execute `npm install`.
+4. Rename `config/config.sample.json` to `config/config.json`.
+5. Open & configure `config/config.json`.
+6. *(skip this step for now - not implemented in JsControl Classy0.0.1)*  
+   Install MySQL and set up a database. Execute the `mysql.sql` file on the just made MySQL database.
+7. *(skip this step for now - not implemented in JsControl Classy0.0.1)*  
+   Set the correct values in `config/config_database.js`.
+
+To run it
+=========
+Execute `node .`
 
 Dependencies
 =========
-* [sax](http://search.npmjs.org/#/sax).
-* [xmlbuilder](http://search.npmjs.org/#/xmlbuilder) (required for partial use of xmlrpc)
-* [xmlrpc](http://search.npmjs.org/#/xmlrpc) (partial - serializer and deserializer, modified)
+* [gbxremote](http://search.npmjs.org/#/gbxremote) (connection to the server)
 * [mysql](https://github.com/felixge/node-mysql/) (database)
 
 Contributions
