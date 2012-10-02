@@ -9,7 +9,7 @@ if (!fs.existsSync(__dirname + '/Plugins/')) {
 	return;
 }
 
-if (!fs.existsSync(__dirname + '/config/config.js')) {
+if (!fs.existsSync(__dirname + '/config/config.json')) {
 	console.error('Error: ./config.js not found.');
 	return;
 }
